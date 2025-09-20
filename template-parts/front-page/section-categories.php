@@ -348,15 +348,101 @@ if (function_exists('gi_get_cached_stats')) {
                     
                     <!-- 日本地図表示エリア -->
                     <div class="japan-map-container">
-                        <div class="map-placeholder">
-                            <!-- ここに日本地図画像を配置 -->
-                            <!-- サイズ: 推奨 600px × 700px -->
-                            <div class="map-info">
-                                <p>日本地図画像推奨サイズ</p>
-                                <p class="map-size">横: 600px × 縦: 700px</p>
-                                <p class="map-note">透過PNG形式推奨</p>
-                            </div>
-                        </div>
+                        <h5 class="map-title">🗾 地域を選択して絞り込み</h5>
+                        
+                        <!-- インタラクティブSVG日本地図 -->
+                        <svg viewBox="0 0 600 700" class="japan-map-svg" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#f8f9fa" />
+                                    <stop offset="100%" style="stop-color:#e9ecef" />
+                                </linearGradient>
+                                <filter id="shadow">
+                                    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.15"/>
+                                </filter>
+                            </defs>
+                            
+                            <rect width="600" height="700" fill="url(#bgGrad)" rx="16"/>
+                            
+                            <g class="map-regions">
+                                <!-- 北海道 -->
+                                <g class="region-group" data-region="hokkaido">
+                                    <path class="map-region" data-region="hokkaido"
+                                          d="M 380 60 Q 420 45, 460 50 L 500 80 Q 510 120, 490 150 L 440 160 Q 390 155, 360 140 L 340 100 Q 345 75, 380 60 Z"
+                                          fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="420" y="105" text-anchor="middle" class="region-label">北海道</text>
+                                    <text x="420" y="125" text-anchor="middle" class="region-count">0件</text>
+                                </g>
+                                
+                                <!-- 東北 -->
+                                <g class="region-group" data-region="tohoku">
+                                    <path class="map-region" data-region="tohoku"
+                                          d="M 400 180 Q 430 170, 460 175 L 475 210 Q 470 250, 450 280 L 410 290 Q 380 285, 355 270 L 340 230 Q 345 200, 400 180 Z"
+                                          fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="407" y="230" text-anchor="middle" class="region-label">東北</text>
+                                    <text x="407" y="250" text-anchor="middle" class="region-count">0件</text>
+                                </g>
+                                
+                                <!-- 関東 -->
+                                <g class="region-group" data-region="kanto">
+                                    <path class="map-region" data-region="kanto"
+                                          d="M 410 300 Q 440 290, 470 295 L 485 330 Q 480 370, 460 400 L 420 410 Q 390 405, 365 390 L 350 350 Q 355 320, 410 300 Z"
+                                          fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="417" y="350" text-anchor="middle" class="region-label">関東</text>
+                                    <text x="417" y="370" text-anchor="middle" class="region-count">0件</text>
+                                </g>
+                                
+                                <!-- 中部 -->
+                                <g class="region-group" data-region="chubu">
+                                    <path class="map-region" data-region="chubu"
+                                          d="M 310 310 Q 340 300, 370 305 L 385 340 Q 380 380, 360 410 L 320 420 Q 290 415, 265 400 L 250 360 Q 255 330, 310 310 Z"
+                                          fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="317" y="360" text-anchor="middle" class="region-label">中部</text>
+                                    <text x="317" y="380" text-anchor="middle" class="region-count">0件</text>
+                                </g>
+                                
+                                <!-- 近畿 -->
+                                <g class="region-group" data-region="kinki">
+                                    <path class="map-region" data-region="kinki"
+                                          d="M 230 380 Q 260 370, 290 375 L 305 410 Q 300 450, 280 480 L 240 490 Q 210 485, 185 470 L 170 430 Q 175 400, 230 380 Z"
+                                          fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="237" y="430" text-anchor="middle" class="region-label">近畿</text>
+                                    <text x="237" y="450" text-anchor="middle" class="region-count">0件</text>
+                                </g>
+                                
+                                <!-- 中国 -->
+                                <g class="region-group" data-region="chugoku">
+                                    <path class="map-region" data-region="chugoku"
+                                          d="M 120 390 Q 150 380, 180 385 L 195 420 Q 190 460, 170 490 L 130 500 Q 100 495, 75 480 L 60 440 Q 65 410, 120 390 Z"
+                                          fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="127" y="440" text-anchor="middle" class="region-label">中国</text>
+                                    <text x="127" y="460" text-anchor="middle" class="region-count">0件</text>
+                                </g>
+                                
+                                <!-- 四国 -->
+                                <g class="region-group" data-region="shikoku">
+                                    <path class="map-region" data-region="shikoku"
+                                          d="M 190 480 Q 220 470, 250 475 L 265 510 Q 260 540, 240 565 L 200 575 Q 170 570, 145 555 L 130 520 Q 135 495, 190 480 Z"
+                                          fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="197" y="525" text-anchor="middle" class="region-label">四国</text>
+                                    <text x="197" y="545" text-anchor="middle" class="region-count">0件</text>
+                                </g>
+                                
+                                <!-- 九州 -->
+                                <g class="region-group" data-region="kyushu">
+                                    <path class="map-region" data-region="kyushu"
+                                          d="M 70 510 Q 100 500, 130 505 L 145 540 Q 140 580, 120 610 L 80 620 Q 50 615, 25 600 L 10 560 Q 15 530, 70 510 Z"
+                                          fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="77" y="560" text-anchor="middle" class="region-label">九州</text>
+                                    <text x="77" y="580" text-anchor="middle" class="region-count">0件</text>
+                                    
+                                    <!-- 沖縄 -->
+                                    <circle cx="60" cy="650" r="20" class="map-region" data-region="kyushu"
+                                            fill="#ffffff" stroke="#333" stroke-width="2" filter="url(#shadow)"/>
+                                    <text x="60" y="655" text-anchor="middle" class="region-label" font-size="10">沖縄</text>
+                                </g>
+                            </g>
+                        </svg>
                         
                         <!-- 主要地域ボタン -->
                         <div class="region-buttons">
@@ -585,44 +671,7 @@ if (function_exists('gi_get_cached_stats')) {
     font-weight: 400;
 }
 
-/* 削除：統計情報は使用しない */
-
-.stat-value {
-    display: block;
-    font-size: 42px;
-    font-weight: 900;
-    color: #000000;
-    margin-bottom: 8px;
-    font-feature-settings: 'tnum';
-    position: relative;
-}
-
-/* カテゴリ数は白文字で表示 */
-.stat-value.category-count {
-    color: #ffffff;
-    background: #000000;
-    padding: 8px 16px;
-    border-radius: 12px;
-    display: inline-block;
-}
-
-.stat-value::after {
-    content: '+';
-    position: absolute;
-    right: -15px;
-    top: 0;
-    font-size: 24px;
-    font-weight: 400;
-    color: #999999;
-}
-
-.stat-label {
-    font-size: 13px;
-    color: #999999;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 600;
-}
+/* 統計情報は完全削除済み */
 
 /* メインカテゴリーグリッド */
 .main-categories-grid {
@@ -701,19 +750,26 @@ if (function_exists('gi_get_cached_stats')) {
 
 .card-badge {
     text-align: right;
+    background: linear-gradient(135deg, #000000, #333333);
+    padding: 10px 15px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    display: inline-block;
 }
 
 .badge-count {
     font-size: 28px;
     font-weight: 900;
-    color: #000000;
-    display: block;
+    color: #ffffff;
+    display: inline-block;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .badge-label {
     font-size: 12px;
-    color: #999999;
+    color: #ffffff;
     font-weight: 600;
+    margin-left: 4px;
 }
 
 .card-title {
@@ -1099,63 +1155,65 @@ a.recent-grant-item:hover {
     margin-bottom: 30px;
 }
 
-.map-placeholder {
-    position: relative;
-    background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
-    border-radius: 16px;
-    height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px dashed #999999;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><text x="50" y="50" font-family="Arial" font-size="60" fill="%23cccccc" text-anchor="middle" dominant-baseline="middle">🗾</text></svg>');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 200px;
-}
-
-.map-info {
-    text-align: center;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 12px;
-    z-index: 1;
-    position: relative;
-}
-
-.map-info p {
-    margin: 5px 0;
-    color: #666666;
-}
-
-.map-size {
-    font-size: 24px;
+.map-title {
+    font-size: 16px;
     font-weight: 700;
-    color: #000000;
-    margin: 10px 0 !important;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-.map-note {
-    font-size: 12px;
-    color: #999999;
-}
-
-/* 日本地図画像が設定された場合 */
-.japan-map-container.has-map .map-placeholder {
-    background: transparent;
-    border: none;
-}
-
-.japan-map-container.has-map .map-info {
-    display: none;
-}
-
-.japan-map-image {
+.japan-map-svg {
     width: 100%;
     height: auto;
-    max-height: 400px;
-    object-fit: contain;
+    max-height: 450px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
+
+.map-region {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.map-region:hover {
+    fill: #86efac !important;
+    stroke: #10b981;
+    stroke-width: 3;
+}
+
+.map-region.active {
+    fill: #10b981 !important;
+    stroke: #059669;
+    stroke-width: 3;
+}
+
+.region-label {
+    font-size: 13px;
+    font-weight: 700;
+    fill: #333;
+    pointer-events: none;
+}
+
+.region-count {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #666;
+    pointer-events: none;
+}
+
+.region-group:hover .region-label,
+.region-group:hover .region-count {
+    fill: #ffffff;
+}
+
+.map-region.active ~ .region-label,
+.map-region.active ~ .region-count {
+    fill: #ffffff;
+    font-weight: 900;
+}
+
+/* map-placeholder関連CSS削除済み */
 
 /* 地域ボタン */
 .region-buttons {
