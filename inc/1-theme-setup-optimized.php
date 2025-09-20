@@ -16,10 +16,8 @@ if (!defined('ABSPATH')) {
 
 /**
  * テーマバージョン定数
+ * Note: メインのバージョン定義はfunctions.phpにあるため、ここでは再定義しない
  */
-if (!defined('GI_THEME_VERSION')) {
-    define('GI_THEME_VERSION', '7.0.0');
-}
 
 /**
  * テーマ基本設定
