@@ -156,6 +156,50 @@ function gi_safe_get_meta($post_id, $key, $default = '') {
 }
 
 /**
+ * サイト統計情報を取得
+ */
+function gi_get_cached_stats() {
+    $stats = get_transient('gi_site_stats');
+    
+    if (false === $stats) {
+        $stats = array(
+            'total_grants' => wp_count_posts('grant')->publish,
+            'active_grants' => 0,
+            'prefecture_count' => 47,
+            'category_count' => 0
+        );
+        
+        // アクティブな助成金数を計算
+        $active_query = new WP_Query(array(
+            'post_type' => 'grant',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => 'application_status',
+                    'value' => array('open', 'active'),
+                    'compare' => 'IN'
+                )
+            ),
+            'fields' => 'ids'
+        ));
+        $stats['active_grants'] = $active_query->found_posts;
+        
+        // カテゴリ数を取得
+        $categories = get_terms(array(
+            'taxonomy' => 'grant_category',
+            'hide_empty' => false
+        ));
+        $stats['category_count'] = count($categories);
+        
+        // 1時間キャッシュ
+        set_transient('gi_site_stats', $stats, HOUR_IN_SECONDS);
+    }
+    
+    return $stats;
+}
+
+/**
  * 締切日のフォーマット関数（改善版）
  * 複数のフィールド名と形式に対応
  */

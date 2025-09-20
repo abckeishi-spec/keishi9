@@ -96,7 +96,85 @@ function gi_grant_column_content($column, $post_id) {
     }
 }
 
-// 重要ニュース機能は削除されました（未使用のため）
+/**
+ * 管理画面にサンプルデータ作成ボタンを追加
+ */
+function gi_add_sample_data_page() {
+    add_submenu_page(
+        'edit.php?post_type=grant',
+        'サンプルデータ作成',
+        'サンプルデータ',
+        'manage_options',
+        'gi-sample-data',
+        'gi_sample_data_page_content'
+    );
+}
+add_action('admin_menu', 'gi_add_sample_data_page');
+
+/**
+ * サンプルデータページの内容
+ */
+function gi_sample_data_page_content() {
+    if (isset($_POST['create_sample_data']) && check_admin_referer('gi_create_sample_data')) {
+        gi_create_sample_grants();
+        echo '<div class="notice notice-success"><p>サンプルデータを作成しました。</p></div>';
+    }
+    
+    // 現在の投稿数を確認
+    $grant_count = wp_count_posts('grant')->publish;
+    ?>
+    <div class="wrap">
+        <h1>サンプルデータ作成</h1>
+        
+        <div class="gi-admin-notice">
+            <h3>現在の状況</h3>
+            <p>現在の助成金投稿数: <strong><?php echo $grant_count; ?>件</strong></p>
+        </div>
+        
+        <?php if ($grant_count == 0): ?>
+        <form method="post" action="">
+            <?php wp_nonce_field('gi_create_sample_data'); ?>
+            <p>サンプルデータを作成すると、テスト用の助成金情報が登録されます。</p>
+            <p>
+                <input type="submit" name="create_sample_data" class="button button-primary" value="サンプルデータを作成">
+            </p>
+        </form>
+        <?php else: ?>
+        <p>すでに投稿データが存在するため、サンプルデータの作成はスキップされました。</p>
+        <?php endif; ?>
+        
+        <h2>都道府県別統計</h2>
+        <?php
+        $prefectures = get_terms(array(
+            'taxonomy' => 'grant_prefecture',
+            'hide_empty' => false,
+            'orderby' => 'count',
+            'order' => 'DESC'
+        ));
+        
+        if (!empty($prefectures) && !is_wp_error($prefectures)): ?>
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>都道府県</th>
+                    <th>投稿数</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($prefectures as $pref): ?>
+                <tr>
+                    <td><?php echo esc_html($pref->name); ?></td>
+                    <td><?php echo $pref->count; ?>件</td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php else: ?>
+        <p>都道府県データがありません。</p>
+        <?php endif; ?>
+    </div>
+    <?php
+}
 
 
 /**

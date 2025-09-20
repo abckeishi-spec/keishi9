@@ -259,10 +259,13 @@ if (function_exists('gi_get_cached_stats')) {
                     <h4 class="prefecture-list-title">都道府県一覧</h4>
                     <div class="prefecture-list">
                         <?php
-                        // 47都道府県の完全なリスト
-                        $all_prefectures = array(
-                            // 北海道・東北
-                            array('name' => '北海道', 'slug' => 'hokkaido', 'region' => 'hokkaido'),
+                        // 47都道府県の完全なリストを関数から取得
+                        if (function_exists('gi_get_all_prefectures')) {
+                            $all_prefectures = gi_get_all_prefectures();
+                        } else {
+                            // フォールバック
+                            $all_prefectures = array(
+                                array('name' => '北海道', 'slug' => 'hokkaido', 'region' => 'hokkaido'),
                             array('name' => '青森県', 'slug' => 'aomori', 'region' => 'tohoku'),
                             array('name' => '岩手県', 'slug' => 'iwate', 'region' => 'tohoku'),
                             array('name' => '宮城県', 'slug' => 'miyagi', 'region' => 'tohoku'),
@@ -314,8 +317,9 @@ if (function_exists('gi_get_cached_stats')) {
                             array('name' => '大分県', 'slug' => 'oita', 'region' => 'kyushu'),
                             array('name' => '宮崎県', 'slug' => 'miyazaki', 'region' => 'kyushu'),
                             array('name' => '鹿児島県', 'slug' => 'kagoshima', 'region' => 'kyushu'),
-                            array('name' => '沖縄県', 'slug' => 'okinawa', 'region' => 'kyushu')
-                        );
+                                array('name' => '沖縄県', 'slug' => 'okinawa', 'region' => 'kyushu')
+                            );
+                        }
                         
                         foreach ($all_prefectures as $pref) :
                             // 実際の投稿数を取得
