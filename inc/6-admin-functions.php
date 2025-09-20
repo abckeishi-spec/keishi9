@@ -174,9 +174,7 @@ function gi_sample_data_page_content() {
         <?php endif; ?>
     </div>
     <?php
-    }
 }
-
 
 /**
  * 管理メニューの追加
