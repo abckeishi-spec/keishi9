@@ -573,20 +573,7 @@ if (function_exists('gi_get_cached_stats')) {
     font-weight: 400;
 }
 
-/* 統計情報 */
-.stats-row {
-    display: flex;
-    justify-content: center;
-    gap: 60px;
-    padding: 40px;
-    background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
-    border-radius: 20px;
-    border: 1px solid #e0e0e0;
-}
-
-.stat-item {
-    text-align: center;
-}
+/* 削除：統計情報は使用しない */
 
 .stat-value {
     display: block;
@@ -1518,44 +1505,79 @@ document.addEventListener('DOMContentLoaded', function() {
         'kyushu': ['福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県']
     };
     
+    // 地域をハイライトする関数
+    function highlightRegion(region) {
+        // 全ての地域のアクティブ状態をリセット
+        document.querySelectorAll('.map-region').forEach(r => {
+            r.classList.remove('active', 'highlight');
+        });
+        document.querySelectorAll('.region-button').forEach(b => {
+            b.classList.remove('active');
+        });
+        
+        // 選択された地域をアクティブに
+        const mapRegion = document.querySelector(`.map-region[data-region="${region}"]`);
+        if (mapRegion) {
+            mapRegion.classList.add('active');
+        }
+        
+        const regionButton = document.querySelector(`.region-button[data-region="${region}"]`);
+        if (regionButton) {
+            regionButton.classList.add('active');
+        }
+        
+        // 該当する都道府県をハイライト
+        document.querySelectorAll('.prefecture-item').forEach(item => {
+            const itemRegion = item.getAttribute('data-region');
+            if (itemRegion === region) {
+                item.classList.add('highlighted');
+                item.style.opacity = '1';
+                item.style.background = '#E8F5E9';
+                item.style.borderColor = '#4CAF50';
+            } else {
+                item.classList.remove('highlighted');
+                item.style.opacity = '0.3';
+                item.style.background = '';
+                item.style.borderColor = '';
+            }
+        });
+        
+        // 都道府県リストコンテナをスクロール
+        const prefectureContainer = document.querySelector('.all-prefectures-container');
+        if (prefectureContainer) {
+            const highlightedItem = prefectureContainer.querySelector('.prefecture-item.highlighted');
+            if (highlightedItem) {
+                highlightedItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+    
+    // SVG地図の地域クリック
+    document.querySelectorAll('.map-region').forEach(region => {
+        region.addEventListener('click', function() {
+            const regionId = this.getAttribute('data-region');
+            highlightRegion(regionId);
+        });
+        
+        // ホバー効果
+        region.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('active')) {
+                this.classList.add('highlight');
+            }
+        });
+        
+        region.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('active')) {
+                this.classList.remove('highlight');
+            }
+        });
+    });
+    
     // 地域ボタンクリック
     document.querySelectorAll('.region-button').forEach(button => {
         button.addEventListener('click', function() {
             const region = this.getAttribute('data-region');
-            const prefectures = regionPrefectureMap[region] || [];
-            
-            // 全ての地域ボタンの選択状態をリセット
-            document.querySelectorAll('.region-button').forEach(b => {
-                b.classList.remove('active');
-            });
-            
-            // クリックされた地域をアクティブに
-            this.classList.add('active');
-            
-            // 該当する都道府県をハイライト
-            document.querySelectorAll('.prefecture-item').forEach(item => {
-                const itemRegion = item.getAttribute('data-region');
-                if (itemRegion === region) {
-                    item.classList.add('highlighted');
-                    item.style.opacity = '1';
-                    item.style.background = '#E8F5E9';
-                    item.style.borderColor = '#4CAF50';
-                } else {
-                    item.classList.remove('highlighted');
-                    item.style.opacity = '0.3';
-                    item.style.background = '';
-                    item.style.borderColor = '';
-                }
-            });
-            
-            // 都道府県リストコンテナをスクロール
-            const prefectureContainer = document.querySelector('.all-prefectures-container');
-            if (prefectureContainer) {
-                const highlightedItem = prefectureContainer.querySelector('.prefecture-item.highlighted');
-                if (highlightedItem) {
-                    highlightedItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
+            highlightRegion(region);
         });
     });
     
