@@ -39,60 +39,8 @@ function gi_prefetch_post_data($post_ids) {
     }
 }
 
-/**
- * 統計情報をキャッシュ付きで取得
- * 重いクエリをトランジェントでキャッシュ
- */
-function gi_get_cached_stats() {
-    $cache_key = 'gi_site_stats_v2';
-    $cached_stats = get_transient($cache_key);
-    
-    if ($cached_stats !== false) {
-        return $cached_stats;
-    }
-    
-    // 統計情報を計算
-    $stats = array();
-    
-    // 助成金総数
-    $stats['total_grants'] = wp_count_posts('grant')->publish;
-    
-    // 募集中の助成金数（最適化されたクエリ）
-    global $wpdb;
-    $active_count = $wpdb->get_var($wpdb->prepare("
-        SELECT COUNT(DISTINCT p.ID) 
-        FROM {$wpdb->posts} p 
-        INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id 
-        WHERE p.post_type = %s 
-        AND p.post_status = 'publish' 
-        AND pm.meta_key = 'application_status' 
-        AND pm.meta_value = 'open'
-    ", 'grant'));
-    $stats['active_grants'] = intval($active_count);
-    
-    // 都道府県数
-    $stats['prefecture_count'] = wp_count_terms(array(
-        'taxonomy' => 'grant_prefecture', 
-        'hide_empty' => false
-    ));
-    
-    // 平均採択率（最適化されたクエリ）
-    $avg_rate = $wpdb->get_var($wpdb->prepare("
-        SELECT AVG(CAST(pm.meta_value AS UNSIGNED)) 
-        FROM {$wpdb->postmeta} pm 
-        INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID 
-        WHERE p.post_type = %s 
-        AND p.post_status = 'publish' 
-        AND pm.meta_key = 'grant_success_rate' 
-        AND pm.meta_value > 0
-    ", 'grant'));
-    $stats['avg_success_rate'] = round(floatval($avg_rate));
-    
-    // 24時間キャッシュ
-    set_transient($cache_key, $stats, DAY_IN_SECONDS);
-    
-    return $stats;
-}
+// gi_get_cached_stats()関数はinc/4-helper-functions.phpで定義済み
+// 重複を避けるためここでは定義しない
 
 /**
  * ユーザーのお気に入り情報をキャッシュ付きで取得（最適化版）

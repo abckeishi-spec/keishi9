@@ -161,7 +161,8 @@ add_action('init', 'gi_register_taxonomies');
 /**
  * 47都道府県の初期データを登録
  */
-function gi_init_prefecture_terms() {
+if (!function_exists('gi_init_prefecture_terms')) {
+    function gi_init_prefecture_terms() {
     // タクソノミーが存在するか確認
     if (!taxonomy_exists('grant_prefecture')) {
         return;
@@ -235,6 +236,7 @@ function gi_init_prefecture_terms() {
             );
         }
     }
+    }
 }
 // テーマ有効化時に実行
 add_action('after_setup_theme', 'gi_init_prefecture_terms');
@@ -242,7 +244,8 @@ add_action('after_setup_theme', 'gi_init_prefecture_terms');
 /**
  * 都道府県データを取得するヘルパー関数
  */
-function gi_get_all_prefectures() {
+if (!function_exists('gi_get_all_prefectures')) {
+    function gi_get_all_prefectures() {
     return array(
         // 北海道・東北
         array('name' => '北海道', 'slug' => 'hokkaido', 'region' => 'hokkaido'),
@@ -299,12 +302,14 @@ function gi_get_all_prefectures() {
         array('name' => '鹿児島県', 'slug' => 'kagoshima', 'region' => 'kyushu'),
         array('name' => '沖縄県', 'slug' => 'okinawa', 'region' => 'kyushu')
     );
+    }
 }
 
 /**
  * サンプルデータを作成する関数（テスト用）
  */
-function gi_create_sample_grants() {
+if (!function_exists('gi_create_sample_grants')) {
+    function gi_create_sample_grants() {
     // 管理者のみ実行可能
     if (!current_user_can('manage_options')) {
         return;
@@ -409,6 +414,7 @@ function gi_create_sample_grants() {
             update_post_meta($post_id, 'application_status', 'open');
             update_post_meta($post_id, 'deadline', date('Y年m月d日', strtotime('+3 months')));
         }
+    }
     }
 }
 // テーマ有効化時に一度だけ実行
