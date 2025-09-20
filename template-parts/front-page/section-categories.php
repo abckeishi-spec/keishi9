@@ -118,20 +118,6 @@ if (function_exists('gi_get_cached_stats')) {
             <p class="section-description">
                 業種・目的別に最適な助成金を簡単検索
             </p>
-
-            <!-- 統計情報 -->
-            <div class="stats-row">
-                <div class="stat-item">
-                    <span class="stat-label">総助成金数</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-value category-count" data-counter="<?php echo count($all_categories); ?>"><?php echo count($all_categories); ?></span>
-                    <span class="stat-label">カテゴリー</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">都道府県</span>
-                </div>
-            </div>
         </div>
 
         <!-- メインカテゴリーグリッド -->
@@ -332,14 +318,23 @@ if (function_exists('gi_get_cached_stats')) {
                         );
                         
                         foreach ($all_prefectures as $pref) :
-                            $prefecture_url = add_query_arg('grant_prefecture', $pref['slug'], $archive_base_url);
-                            // 実際の投稿数を取得（存在する場合）
+                            // 実際の投稿数を取得
                             $term = get_term_by('slug', $pref['slug'], 'grant_prefecture');
                             $count = $term ? $term->count : 0;
+                            
+                            // フィルター付きURLを生成
+                            $prefecture_url = add_query_arg(
+                                array(
+                                    'grant_prefecture' => $pref['slug'],
+                                    'filter' => 'prefecture'
+                                ), 
+                                $archive_base_url
+                            );
                         ?>
                         <a href="<?php echo esc_url($prefecture_url); ?>" 
                            class="prefecture-item" 
-                           data-region="<?php echo esc_attr($pref['region']); ?>">
+                           data-region="<?php echo esc_attr($pref['region']); ?>"
+                           data-count="<?php echo esc_attr($count); ?>">
                             <span class="prefecture-name"><?php echo esc_html($pref['name']); ?></span>
                             <span class="prefecture-count"><?php echo $count; ?>件</span>
                         </a>
@@ -367,21 +362,38 @@ if (function_exists('gi_get_cached_stats')) {
                         <div class="region-buttons">
                             <?php
                             $main_regions = array(
-                                array('id' => 'hokkaido', 'name' => '北海道', 'prefectures' => 1),
-                                array('id' => 'tohoku', 'name' => '東北', 'prefectures' => 6),
-                                array('id' => 'kanto', 'name' => '関東', 'prefectures' => 7),
-                                array('id' => 'chubu', 'name' => '中部', 'prefectures' => 9),
-                                array('id' => 'kinki', 'name' => '近畿', 'prefectures' => 7),
-                                array('id' => 'chugoku', 'name' => '中国', 'prefectures' => 5),
-                                array('id' => 'shikoku', 'name' => '四国', 'prefectures' => 4),
-                                array('id' => 'kyushu', 'name' => '九州・沖縄', 'prefectures' => 8)
+                                array('id' => 'hokkaido', 'name' => '北海道', 'prefectures' => ['北海道']),
+                                array('id' => 'tohoku', 'name' => '東北', 'prefectures' => ['青森県','岩手県','宮城県','秋田県','山形県','福島県']),
+                                array('id' => 'kanto', 'name' => '関東', 'prefectures' => ['茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県']),
+                                array('id' => 'chubu', 'name' => '中部', 'prefectures' => ['新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県']),
+                                array('id' => 'kinki', 'name' => '近畿', 'prefectures' => ['三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県']),
+                                array('id' => 'chugoku', 'name' => '中国', 'prefectures' => ['鳥取県','島根県','岡山県','広島県','山口県']),
+                                array('id' => 'shikoku', 'name' => '四国', 'prefectures' => ['徳島県','香川県','愛媛県','高知県']),
+                                array('id' => 'kyushu', 'name' => '九州・沖縄', 'prefectures' => ['福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'])
                             );
                             
                             foreach ($main_regions as $region) :
+                                // 地域内の助成金数を計算
+                                $region_count = 0;
+                                foreach ($region['prefectures'] as $pref_name) {
+                                    // slugを取得
+                                    $pref_data = array_filter($all_prefectures, function($p) use ($pref_name) {
+                                        return $p['name'] === $pref_name;
+                                    });
+                                    if (!empty($pref_data)) {
+                                        $pref_data = array_values($pref_data)[0];
+                                        $term = get_term_by('slug', $pref_data['slug'], 'grant_prefecture');
+                                        if ($term) {
+                                            $region_count += $term->count;
+                                        }
+                                    }
+                                }
                             ?>
-                            <button class="region-button" data-region="<?php echo esc_attr($region['id']); ?>">
+                            <button class="region-button" 
+                                    data-region="<?php echo esc_attr($region['id']); ?>"
+                                    data-count="<?php echo esc_attr($region_count); ?>">
                                 <span class="region-name"><?php echo esc_html($region['name']); ?></span>
-                                <span class="region-count"><?php echo $region['prefectures']; ?>都道府県</span>
+                                <span class="region-count"><?php echo $region_count; ?>件</span>
                             </button>
                             <?php endforeach; ?>
                         </div>
@@ -1400,6 +1412,23 @@ a.recent-grant-item:hover {
 <!-- JavaScript -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // 地域ごとの助成金数を更新
+    function updateRegionCounts() {
+        document.querySelectorAll('.region-button').forEach(button => {
+            const region = button.getAttribute('data-region');
+            const count = button.getAttribute('data-count') || 0;
+            
+            // SVG地図上の件数表示を更新
+            const mapRegion = document.querySelector(`.region-group[data-region="${region}"] .region-count`);
+            if (mapRegion) {
+                mapRegion.textContent = count + '件';
+            }
+        });
+    }
+    
+    // ページ読み込み時に地域件数を更新
+    updateRegionCounts();
+    
     // カウンターアニメーション
     const observerOptions = {
         threshold: 0.5,
