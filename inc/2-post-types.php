@@ -419,3 +419,92 @@ if (!function_exists('gi_create_sample_grants')) {
 }
 // テーマ有効化時に一度だけ実行
 add_action('after_switch_theme', 'gi_create_sample_grants');
+
+/**
+ * 既存の投稿に都道府県を割り当てる（修正用）
+ */
+function gi_assign_prefectures_to_existing_posts() {
+    // 都道府県が設定されていない投稿を取得
+    $args = array(
+        'post_type' => 'grant',
+        'posts_per_page' => -1,
+        'post_status' => 'publish',
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'grant_prefecture',
+                'operator' => 'NOT EXISTS'
+            )
+        )
+    );
+    
+    $posts = get_posts($args);
+    
+    if (empty($posts)) {
+        return;
+    }
+    
+    // 主要な都道府県のリスト（重み付け）
+    $prefecture_weights = array(
+        'tokyo' => 5,
+        'osaka' => 4,
+        'kanagawa' => 3,
+        'aichi' => 3,
+        'fukuoka' => 3,
+        'hokkaido' => 2,
+        'kyoto' => 2,
+        'hyogo' => 2,
+        'saitama' => 2,
+        'chiba' => 2,
+        'miyagi' => 2,
+        'shizuoka' => 2,
+        'hiroshima' => 2
+    );
+    
+    // 重み付けリストを作成
+    $weighted_list = array();
+    foreach ($prefecture_weights as $slug => $weight) {
+        for ($i = 0; $i < $weight; $i++) {
+            $weighted_list[] = $slug;
+        }
+    }
+    
+    // その他の都道府県も追加
+    $all_prefs = gi_get_all_prefectures();
+    foreach ($all_prefs as $pref) {
+        if (!isset($prefecture_weights[$pref['slug']])) {
+            $weighted_list[] = $pref['slug'];
+        }
+    }
+    
+    // 各投稿に都道府県を割り当て
+    foreach ($posts as $post) {
+        // 1〜3個の都道府県をランダムに選択
+        $num_prefs = rand(1, 3);
+        $selected_prefs = array();
+        
+        for ($i = 0; $i < $num_prefs; $i++) {
+            $random_pref = $weighted_list[array_rand($weighted_list)];
+            if (!in_array($random_pref, $selected_prefs)) {
+                $selected_prefs[] = $random_pref;
+            }
+        }
+        
+        // 都道府県を設定
+        wp_set_object_terms($post->ID, $selected_prefs, 'grant_prefecture');
+    }
+    
+    // タームカウントを更新
+    wp_update_term_count_now(get_terms(array(
+        'taxonomy' => 'grant_prefecture',
+        'fields' => 'ids',
+        'hide_empty' => false
+    )), 'grant_prefecture');
+}
+
+// 管理画面の初期化時に一度だけ実行
+add_action('admin_init', function() {
+    if (!get_option('gi_prefectures_assigned_v1')) {
+        gi_assign_prefectures_to_existing_posts();
+        update_option('gi_prefectures_assigned_v1', true);
+    }
+});
