@@ -24,6 +24,8 @@ $inc_dir = get_template_directory() . '/inc/';
 $required_files = array(
     '1-theme-setup-optimized.php',    // テーマ基本設定、スクリプト（最適化版）
     '2-post-types.php',               // 投稿タイプ、タクソノミー
+    'prefecture-fix.php',             // 都道府県修正機能
+    'prefecture-init.php',            // 都道府県初期化
     '3-ajax-functions.php',           // AJAX関連
     '4-helper-functions.php',         // ヘルパー関数
     '5-template-tags.php',            // テンプレート用関数

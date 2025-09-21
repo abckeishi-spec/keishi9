@@ -322,15 +322,35 @@ if (function_exists('gi_get_cached_stats')) {
                         }
                         
                         foreach ($all_prefectures as $pref) :
-                            // 実際の投稿数を取得
+                            // 実際の投稿数を取得（改善版）
                             $term = get_term_by('slug', $pref['slug'], 'grant_prefecture');
-                            $count = $term ? $term->count : 0;
+                            if ($term && !is_wp_error($term)) {
+                                // WP_Queryで正確な件数を取得
+                                $count_args = array(
+                                    'post_type' => 'grant',
+                                    'post_status' => 'publish',
+                                    'posts_per_page' => -1,
+                                    'fields' => 'ids',
+                                    'tax_query' => array(
+                                        array(
+                                            'taxonomy' => 'grant_prefecture',
+                                            'field' => 'slug',
+                                            'terms' => $pref['slug'],
+                                        ),
+                                    ),
+                                );
+                                $count_query = new WP_Query($count_args);
+                                $count = $count_query->found_posts;
+                                wp_reset_postdata();
+                            } else {
+                                $count = 0;
+                            }
                             
-                            // フィルター付きURLを生成
+                            // フィルター付きURLを生成（パラメータ名を修正）
                             $prefecture_url = add_query_arg(
                                 array(
-                                    'grant_prefecture' => $pref['slug'],
-                                    'filter' => 'prefecture'
+                                    'prefecture' => $pref['slug'],  // archive-grant.phpが期待するパラメータ名に修正
+                                    'filter_applied' => '1'
                                 ), 
                                 $archive_base_url
                             );
@@ -463,7 +483,7 @@ if (function_exists('gi_get_cached_stats')) {
                             );
                             
                             foreach ($main_regions as $region) :
-                                // 地域内の助成金数を計算
+                                // 地域内の助成金数を計算（改善版）
                                 $region_count = 0;
                                 foreach ($region['prefectures'] as $pref_name) {
                                     // slugを取得
@@ -473,8 +493,24 @@ if (function_exists('gi_get_cached_stats')) {
                                     if (!empty($pref_data)) {
                                         $pref_data = array_values($pref_data)[0];
                                         $term = get_term_by('slug', $pref_data['slug'], 'grant_prefecture');
-                                        if ($term) {
-                                            $region_count += $term->count;
+                                        if ($term && !is_wp_error($term)) {
+                                            // WP_Queryで正確な件数を取得
+                                            $count_args = array(
+                                                'post_type' => 'grant',
+                                                'post_status' => 'publish',
+                                                'posts_per_page' => -1,
+                                                'fields' => 'ids',
+                                                'tax_query' => array(
+                                                    array(
+                                                        'taxonomy' => 'grant_prefecture',
+                                                        'field' => 'slug',
+                                                        'terms' => $pref_data['slug'],
+                                                    ),
+                                                ),
+                                            );
+                                            $count_query = new WP_Query($count_args);
+                                            $region_count += $count_query->found_posts;
+                                            wp_reset_postdata();
                                         }
                                     }
                                 }
