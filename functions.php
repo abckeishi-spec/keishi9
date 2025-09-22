@@ -1,7 +1,13 @@
 <?php
 /**
- * Grant Insight Perfect - Functions File Loader
+ * Grant Insight Perfect - Functions File Loader (Consolidated Edition)
+ * 
+ * ファイル統合により16個のincファイルを6個に削減
+ * - AI関連機能を完全削除
+ * - 機能別にファイルを統合・整理
+ * 
  * @package Grant_Insight_Perfect
+ * @version 8.0.0
  */
 
 // セキュリティチェック
@@ -9,9 +15,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// テーマバージョン定数（重複チェック追加）
+// テーマバージョン定数（ファイル統合版）
 if (!defined('GI_THEME_VERSION')) {
-    define('GI_THEME_VERSION', '6.2.2');
+    define('GI_THEME_VERSION', '8.0.0');
 }
 if (!defined('GI_THEME_PREFIX')) {
     define('GI_THEME_PREFIX', 'gi_');
@@ -20,19 +26,14 @@ if (!defined('GI_THEME_PREFIX')) {
 // 機能ファイルの読み込み
 $inc_dir = get_template_directory() . '/inc/';
 
-// ファイル存在チェックを追加
+// 統合されたファイル構成（16ファイル → 6ファイル）
 $required_files = array(
-    '1-theme-setup-optimized.php',    // テーマ基本設定、スクリプト（最適化版）
-    '2-post-types.php',               // 投稿タイプ、タクソノミー
-    '3-ajax-functions.php',           // AJAX関連
-    '4-helper-functions.php',         // ヘルパー関数
-    '5-template-tags.php',            // テンプレート用関数
-    '6-admin-functions.php',          // 管理画面関連
-    '7-acf-setup.php',                // ACF関連
-    '8-acf-fields-setup.php',         // ACFフィールド定義
-    '9-mobile-optimization.php',      // モバイル最適化機能
-    '10-performance-helpers.php',     // パフォーマンス最適化ヘルパー
-    '11-grant-card-renderer.php'      // 助成金カードレンダラー
+    'core-setup.php',        // テーマ設定、投稿タイプ、タクソノミー統合
+    'display-functions.php', // カードレンダリング、テンプレート、モバイル最適化統合
+    'data-functions.php',    // ヘルパー関数、パフォーマンス最適化統合
+    '3-ajax-functions.php',  // AJAX処理（既存のまま）
+    '6-admin-functions.php', // 管理画面機能（既存のまま）
+    'acf-setup.php'          // ACF設定とフィールド定義統合
 );
 
 // 各ファイルを安全に読み込み
@@ -48,18 +49,9 @@ foreach ($required_files as $file) {
     }
 }
 
-// 統一カードレンダラーの読み込み（エラーハンドリング付き）
-$card_renderer_path = get_template_directory() . '/inc/11-grant-card-renderer.php';
+// 統一カードレンダラーは display-functions.php に統合済み
+// テンプレートファイルのチェック
 $card_unified_path = get_template_directory() . '/template-parts/grant-card-unified.php';
-
-if (file_exists($card_renderer_path)) {
-    require_once $card_renderer_path;
-} else {
-    if (defined('WP_DEBUG') && WP_DEBUG) {
-        error_log('Grant Insight Theme: GrantCardRenderer class not found at ' . $card_renderer_path);
-    }
-}
-
 if (file_exists($card_unified_path)) {
     require_once $card_unified_path;
 } else {
