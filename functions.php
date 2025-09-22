@@ -32,13 +32,7 @@ $required_files = array(
     '8-acf-fields-setup.php',         // ACFフィールド定義
     '9-mobile-optimization.php',      // モバイル最適化機能
     '10-performance-helpers.php',     // パフォーマンス最適化ヘルパー
-    '11-grant-card-renderer.php',     // 助成金カードレンダラー
-    '12-ai_concierge_function.php',   // AIコンシェルジュ機能
-    '13-ai-enhanced-functions.php',   // AI強化機能（セマンティック検索、ストリーミング、音声認識）
-    '14-vector-database.php',         // ベクトルデータベース（セマンティック検索用）
-    '15-openai-integration.php',      // OpenAI API統合（完全実装版）
-    '16-grant-semantic-search.php',   // 助成金セマンティック検索（強化版）
-    '17-emotion-learning-system.php'  // 感情分析＆学習システム（日本語対応）
+    '11-grant-card-renderer.php'      // 助成金カードレンダラー
 );
 
 // 各ファイルを安全に読み込み
@@ -120,35 +114,7 @@ function gi_theme_cleanup() {
 }
 add_action('switch_theme', 'gi_theme_cleanup');
 
-/**
- * AI強化機能のスクリプトとスタイル登録
- */
-function gi_enqueue_ai_enhanced_assets() {
-    // 強化版AIアシスタントJS
-    wp_enqueue_script(
-        'gi-ai-assistant-enhanced',
-        get_template_directory_uri() . '/js/ai-assistant-enhanced.js',
-        array('jquery'),
-        GI_THEME_VERSION,
-        true
-    );
-    
-    // 強化版AIアシスタントCSS
-    wp_enqueue_style(
-        'gi-ai-assistant-enhanced',
-        get_template_directory_uri() . '/css/ai-assistant-enhanced.css',
-        array(),
-        GI_THEME_VERSION
-    );
-    
-    // Ajax設定をローカライズ
-    wp_localize_script('gi-ai-assistant-enhanced', 'gi_ajax', array(
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('gi_ai_nonce'),
-        'api_key_configured' => !empty(get_option('gi_ai_concierge_settings')['openai_api_key'])
-    ));
-}
-add_action('wp_enqueue_scripts', 'gi_enqueue_ai_enhanced_assets', 100);
+
 
 /**
  * スクリプトにdefer属性を追加（改善版）
@@ -374,38 +340,7 @@ function gi_create_database_tables() {
         KEY created_at (created_at)
     ) $charset_collate;";
     
-    // AIチャット履歴テーブル
-    $chat_history_table = $wpdb->prefix . 'gi_chat_history';
-    $sql2 = "CREATE TABLE IF NOT EXISTS $chat_history_table (
-        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-        session_id varchar(255) NOT NULL,
-        user_id bigint(20) unsigned DEFAULT NULL,
-        message_type enum('user','assistant') NOT NULL DEFAULT 'user',
-        message text NOT NULL,
-        intent varchar(100) DEFAULT NULL,
-        confidence decimal(3,2) DEFAULT NULL,
-        related_grants text DEFAULT NULL,
-        created_at timestamp DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        KEY session_id (session_id),
-        KEY user_id (user_id),
-        KEY created_at (created_at)
-    ) $charset_collate;";
-    
-    // 音声入力履歴テーブル
-    $voice_history_table = $wpdb->prefix . 'gi_voice_history';
-    $sql3 = "CREATE TABLE IF NOT EXISTS $voice_history_table (
-        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-        session_id varchar(255) NOT NULL,
-        user_id bigint(20) unsigned DEFAULT NULL,
-        transcribed_text text NOT NULL,
-        confidence decimal(3,2) DEFAULT NULL,
-        duration int(11) DEFAULT NULL,
-        created_at timestamp DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id),
-        KEY session_id (session_id),
-        KEY user_id (user_id)
-    ) $charset_collate;";
+
     
     // ユーザー設定テーブル
     $user_preferences_table = $wpdb->prefix . 'gi_user_preferences';
@@ -421,8 +356,6 @@ function gi_create_database_tables() {
     
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql1);
-    dbDelta($sql2);
-    dbDelta($sql3);
     dbDelta($sql4);
     
     // バージョン管理
@@ -462,67 +395,9 @@ function gi_save_search_history($session_id, $query, $filter, $results_count) {
     return $wpdb->insert_id;
 }
 
-/**
- * チャット履歴の保存
- */
-function gi_save_chat_history($session_id, $message_type, $message, $intent = null, $confidence = null, $related_grants = null) {
-    global $wpdb;
-    
-    $table = $wpdb->prefix . 'gi_chat_history';
-    $wpdb->insert(
-        $table,
-        [
-            'session_id' => $session_id,
-            'user_id' => get_current_user_id() ?: null,
-            'message_type' => $message_type,
-            'message' => $message,
-            'intent' => $intent,
-            'confidence' => $confidence,
-            'related_grants' => is_array($related_grants) ? json_encode($related_grants) : $related_grants
-        ],
-        ['%s', '%d', '%s', '%s', '%s', '%f', '%s']
-    );
-    
-    return $wpdb->insert_id;
-}
 
-/**
- * 音声入力履歴の保存
- */
-function gi_save_voice_history($session_id, $text, $confidence = null, $duration = null) {
-    global $wpdb;
-    
-    $table = $wpdb->prefix . 'gi_voice_history';
-    $wpdb->insert(
-        $table,
-        [
-            'session_id' => $session_id,
-            'user_id' => get_current_user_id() ?: null,
-            'transcribed_text' => $text,
-            'confidence' => $confidence,
-            'duration' => $duration
-        ],
-        ['%s', '%d', '%s', '%f', '%d']
-    );
-    
-    return $wpdb->insert_id;
-}
 
-/**
- * AI検索AJAXハンドラーの早期登録（優先度高）
- */
-function gi_register_ai_ajax_handlers() {
-    // テスト用のシンプルなハンドラー
-    add_action('wp_ajax_gi_test_connection', function() {
-        wp_send_json_success(['message' => 'Connection successful', 'time' => current_time('Y-m-d H:i:s')]);
-    });
-    add_action('wp_ajax_nopriv_gi_test_connection', function() {
-        wp_send_json_success(['message' => 'Connection successful (nopriv)', 'time' => current_time('Y-m-d H:i:s')]);
-    });
-    
-    // AI検索とチャットのハンドラーが存在することを確認（inc/3-ajax-functions.phpで定義済み）
-}
-add_action('init', 'gi_register_ai_ajax_handlers', 5);
+
 
 /**
  * AJAXハンドラーの登録確認

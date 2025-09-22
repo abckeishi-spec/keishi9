@@ -80,20 +80,8 @@ function gi_enqueue_scripts() {
     // メインJavaScript
     wp_enqueue_script('gi-main', get_template_directory_uri() . '/assets/js/main.js', array('jquery'), GI_THEME_VERSION, true);
     
-    // AIアシスタントCSS
-    wp_enqueue_style('gi-ai-assistant', get_template_directory_uri() . '/css/ai-assistant.css', array(), GI_THEME_VERSION);
-    
-    // AIアシスタントJavaScript
-    wp_enqueue_script('gi-ai-assistant', get_template_directory_uri() . '/js/ai-assistant.js', array('jquery'), GI_THEME_VERSION, true);
-    
     // AJAX設定（必要に応じてmain.jsで使用）
     wp_localize_script('gi-main', 'gi_ajax', array(
-        'ajax_url' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('gi_ajax_nonce')
-    ));
-    
-    // AIアシスタント用のAJAX設定
-    wp_localize_script('gi-ai-assistant', 'gi_ajax', array(
         'ajax_url' => admin_url('admin-ajax.php'),
         'nonce' => wp_create_nonce('gi_ajax_nonce')
     ));
