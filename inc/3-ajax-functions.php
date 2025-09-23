@@ -2563,32 +2563,6 @@ function gi_get_popular_searches($limit = 10) {
 // gi_get_grant_title_suggestions関数は3584行目により完全な実装があるため、この古いバージョンは削除
 
 // gi_get_category_suggestions関数は3634行目により完全な実装があるため、この古いバージョンは削除
-// 以下の関数定義も削除された部分（カテゴリー候補取得の古い実装）
-    $suggestions = wp_cache_get($cache_key);
-    
-    if (false === $suggestions) {
-        $terms = get_terms([
-            'taxonomy' => 'grant_category',
-            'name__like' => $query,
-            'number' => $limit,
-            'hide_empty' => true,
-            'orderby' => 'count',
-            'order' => 'DESC'
-        ]);
-        
-        $suggestions = [];
-        if (!is_wp_error($terms)) {
-            foreach ($terms as $term) {
-                $suggestions[] = $term->name;
-            }
-        }
-        
-        // キャッシュ（1時間）
-        wp_cache_set($cache_key, $suggestions, '', 3600);
-    }
-    
-    return $suggestions;
-}
 
 /**
  * 音声認識処理（完全実装版）
