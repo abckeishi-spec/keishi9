@@ -1309,10 +1309,10 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
 (function() {
     'use strict';
 
-    // Configuration
+    // Configuration - Use global config with fallback to PHP
     const CONFIG = {
-        API_URL: '<?php echo esc_url(admin_url("admin-ajax.php")); ?>',
-        NONCE: '<?php echo esc_js($nonce); ?>',
+        API_URL: window.gi_ajax_config?.ajax_url || '<?php echo esc_url(admin_url("admin-ajax.php")); ?>',
+        NONCE: window.gi_ajax_config?.nonce || '<?php echo esc_js($nonce); ?>',
         SESSION_ID: '<?php echo esc_js($session_id); ?>',
         TYPING_DELAY: 30,
         DEBOUNCE_DELAY: 300,

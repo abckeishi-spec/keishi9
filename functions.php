@@ -121,10 +121,14 @@ function gi_theme_cleanup() {
 add_action('switch_theme', 'gi_theme_cleanup');
 
 /**
- * AI強化機能のスクリプトとスタイル登録
+ * AI強化機能のスクリプトとスタイル登録（インライン版のため無効化）
+ * 
+ * 注意: AI機能は template-parts/front-page/section-search.php 内で
+ * インライン実装されているため、外部ファイルの読み込みは無効化
  */
 function gi_enqueue_ai_enhanced_assets() {
-    // 強化版AIアシスタントJS
+    // インライン実装のため、外部スクリプトはコメントアウト
+    /*
     wp_enqueue_script(
         'gi-ai-assistant-enhanced',
         get_template_directory_uri() . '/js/ai-assistant-enhanced.js',
@@ -133,7 +137,6 @@ function gi_enqueue_ai_enhanced_assets() {
         true
     );
     
-    // 強化版AIアシスタントCSS
     wp_enqueue_style(
         'gi-ai-assistant-enhanced',
         get_template_directory_uri() . '/css/ai-assistant-enhanced.css',
@@ -141,12 +144,24 @@ function gi_enqueue_ai_enhanced_assets() {
         GI_THEME_VERSION
     );
     
-    // Ajax設定をローカライズ
     wp_localize_script('gi-ai-assistant-enhanced', 'gi_ajax', array(
         'ajax_url' => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('gi_ai_nonce'),
+        'nonce' => wp_create_nonce('gi_ai_search_nonce'),
+        'ai_search_nonce' => wp_create_nonce('gi_ai_search_nonce'),
         'api_key_configured' => !empty(get_option('gi_ai_concierge_settings')['openai_api_key'])
     ));
+    */
+    
+    // インライン版用のAJAX設定のみをhead部分に出力
+    add_action('wp_head', function() {
+        echo '<script>
+        window.gi_ajax_config = {
+            ajax_url: "' . esc_js(admin_url('admin-ajax.php')) . '",
+            nonce: "' . esc_js(wp_create_nonce('gi_ai_search_nonce')) . '",
+            ai_search_nonce: "' . esc_js(wp_create_nonce('gi_ai_search_nonce')) . '"
+        };
+        </script>';
+    });
 }
 add_action('wp_enqueue_scripts', 'gi_enqueue_ai_enhanced_assets', 100);
 
