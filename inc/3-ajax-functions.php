@@ -3526,26 +3526,63 @@ function gi_ajax_ai_search() {
     }
     
     try {
+        // デバッグ: 検索パラメータをログ
+        error_log("AI Search request: query={$query}, filter={$filter}, session={$session_id}");
+        
         // 検索実行
         $search_results = gi_perform_ai_search($query, $filter);
+        
+        // デバッグ: 検索結果をログ
+        error_log("Search results count: " . count($search_results['grants'] ?? []));
+        
+        if (empty($search_results['grants'])) {
+            error_log("Warning: No grants found for query: {$query}");
+        } else {
+            // 最初の補助金のデータをサンプルとしてログ
+            $sample_grant = $search_results['grants'][0] ?? null;
+            if ($sample_grant) {
+                error_log("Sample grant data: " . json_encode($sample_grant, JSON_UNESCAPED_UNICODE));
+            }
+        }
         
         // AI応答生成
         $ai_response = gi_generate_search_ai_response($query, $search_results);
         
         // セッション保存
         if (!empty($session_id)) {
-            gi_save_search_session($session_id, $query, $search_results, $ai_response);
+            try {
+                gi_save_search_session($session_id, $query, $search_results['grants'] ?? []);
+            } catch (Exception $session_error) {
+                error_log("Session save error: " . $session_error->getMessage());
+                // セッション保存エラーは無視して続行
+            }
         }
         
-        wp_send_json_success([
-            'grants' => $search_results['grants'],
-            'count' => $search_results['total_count'],
+        // レスポンスデータの構築
+        $response_data = [
+            'grants' => $search_results['grants'] ?? [],
+            'count' => $search_results['total_count'] ?? 0,
             'ai_response' => $ai_response,
             'query' => $query,
-            'filter' => $filter
-        ]);
+            'filter' => $filter,
+            'debug' => [
+                'grants_found' => count($search_results['grants'] ?? []),
+                'keywords' => $search_results['keywords'] ?? [],
+                'timestamp' => current_time('mysql')
+            ]
+        ];
+        
+        // デバッグ: レスポンスデータをログ
+        error_log("Sending response: " . json_encode([
+            'success' => true,
+            'grants_count' => count($response_data['grants']),
+            'has_ai_response' => !empty($response_data['ai_response'])
+        ], JSON_UNESCAPED_UNICODE));
+        
+        wp_send_json_success($response_data);
         
     } catch (Exception $e) {
+        error_log("AI Search error: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
         wp_send_json_error(['message' => 'Search error: ' . $e->getMessage()]);
     }
 }
@@ -3595,16 +3632,56 @@ function gi_perform_ai_search($query, $filter = 'all') {
             // 関連度スコア計算
             $relevance_score = gi_calculate_relevance_score($post_id, $keywords, $query);
             
+            // より安全なメタデータ取得
+            $grant_title = get_the_title() ?: '補助金情報';
+            $grant_permalink = get_permalink() ?: '';
+            $grant_excerpt = get_the_excerpt() ?: '';
+            
+            // 金額情報を安全に取得
+            $amount_raw = get_post_meta($post_id, 'max_amount', true);
+            if (empty($amount_raw)) {
+                $amount_raw = get_post_meta($post_id, 'grant_amount', true);
+            }
+            if (empty($amount_raw)) {
+                $amount_raw = get_post_meta($post_id, 'max_amount_numeric', true);
+            }
+            $grant_amount = !empty($amount_raw) ? $amount_raw : '未定';
+            
+            // 締切情報を安全に取得
+            $deadline_raw = get_post_meta($post_id, 'deadline', true);
+            if (empty($deadline_raw)) {
+                $deadline_raw = get_post_meta($post_id, 'application_deadline', true);
+            }
+            $grant_deadline = !empty($deadline_raw) ? $deadline_raw : '随時';
+            
+            // 組織情報を安全に取得
+            $org_raw = get_post_meta($post_id, 'organization', true);
+            if (empty($org_raw)) {
+                $org_raw = get_post_meta($post_id, 'implementing_agency', true);
+            }
+            $grant_organization = !empty($org_raw) ? $org_raw : '';
+            
+            // 採択率を安全に取得
+            $success_rate_raw = get_post_meta($post_id, 'grant_success_rate', true);
+            if (empty($success_rate_raw)) {
+                $success_rate_raw = get_post_meta($post_id, 'adoption_rate', true);
+            }
+            $success_rate = (!empty($success_rate_raw) && is_numeric($success_rate_raw)) ? intval($success_rate_raw) : null;
+            
+            // 注目フラグを安全に取得
+            $is_featured = get_post_meta($post_id, 'is_featured', true);
+            $featured = ($is_featured === '1' || $is_featured === 1 || $is_featured === true);
+
             $grants[] = [
                 'id' => $post_id,
-                'title' => get_the_title(),
-                'permalink' => get_permalink(),
-                'excerpt' => get_the_excerpt(),
-                'amount' => get_post_meta($post_id, 'max_amount', true) ?: get_post_meta($post_id, 'grant_amount', true) ?: '未定',
-                'deadline' => get_post_meta($post_id, 'deadline', true) ?: '随時',
-                'organization' => get_post_meta($post_id, 'organization', true) ?: '',
-                'success_rate' => get_post_meta($post_id, 'grant_success_rate', true) ?: '',
-                'featured' => get_post_meta($post_id, 'is_featured', true) === '1',
+                'title' => $grant_title,
+                'permalink' => $grant_permalink,
+                'excerpt' => $grant_excerpt,
+                'amount' => $grant_amount,
+                'deadline' => $grant_deadline,
+                'organization' => $grant_organization,
+                'success_rate' => $success_rate,
+                'featured' => $featured,
                 'relevance_score' => $relevance_score
             ];
         }

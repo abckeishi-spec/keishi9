@@ -1916,8 +1916,17 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                 }
 
                 if (data.success) {
-                    this.displayResults(data.data.grants);
-                    this.updateResultsCount(data.data.count);
+                    console.log('Search successful, received data:', data.data);
+                    
+                    // Validate grants data
+                    if (data.data && data.data.grants && Array.isArray(data.data.grants)) {
+                        this.displayResults(data.data.grants);
+                        this.updateResultsCount(data.data.count || data.data.grants.length);
+                    } else {
+                        console.error('Invalid grants data structure:', data.data);
+                        this.showError('検索結果のデータ形式が不正です');
+                        return;
+                    }
                     
                     // Add AI response to chat
                     if (data.data.ai_response) {
@@ -1925,7 +1934,7 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                     }
                 } else {
                     const errorMsg = data.data?.message || data.data || '検索エラーが発生しました';
-                    console.error('Search failed:', errorMsg);
+                    console.error('Search failed:', errorMsg, data);
                     this.showError(errorMsg);
                 }
             } catch (error) {
@@ -1939,52 +1948,88 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
 
         displayResults(grants) {
             const container = this.elements.resultsContainer;
-            if (!container || !grants) return;
+            if (!container || !grants) {
+                console.error('displayResults: Missing container or grants', {container, grants});
+                return;
+            }
+
+            console.log('Displaying grants:', grants);
 
             if (grants.length === 0) {
                 container.innerHTML = '<div class="no-results">該当する補助金が見つかりませんでした</div>';
                 return;
             }
 
-            container.innerHTML = grants.map(grant => this.createGrantCard(grant)).join('');
+            // Create cards with error handling
+            const cardHtml = grants.map((grant, index) => {
+                try {
+                    console.log(`Processing grant ${index}:`, grant);
+                    return this.createGrantCard(grant);
+                } catch (error) {
+                    console.error(`Error creating card for grant ${index}:`, error, grant);
+                    return `<div class="grant-card error">
+                        <p>カードの表示エラーが発生しました</p>
+                        <small>Grant ID: ${grant?.id || 'unknown'}</small>
+                    </div>`;
+                }
+            }).join('');
+
+            container.innerHTML = cardHtml;
             this.animateCards();
             this.bindGrantCardEvents();
         }
 
         createGrantCard(grant) {
+            // データの安全な取得とエスケープ
+            const safeGet = (value, defaultValue = '') => {
+                if (value === undefined || value === null || value === 'undefined') {
+                    return defaultValue;
+                }
+                return String(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            };
+            
+            const grantId = safeGet(grant.id, '0');
+            const grantTitle = safeGet(grant.title, '補助金情報');
+            const grantAmount = safeGet(grant.amount, '未定');
+            const grantDeadline = safeGet(grant.deadline, '随時');
+            const grantOrg = safeGet(grant.organization, '');
+            const grantPermalink = safeGet(grant.permalink, '#');
+            const successRate = grant.success_rate && grant.success_rate !== '' ? parseInt(grant.success_rate) : null;
+            const isFeatured = grant.featured === true || grant.featured === '1';
+            
             return `
-                <div class="grant-card" data-id="${grant.id}" style="animation-delay: ${Math.random() * 0.2}s">
-                    ${grant.featured ? '<div class="card-badge">注目</div>' : ''}
-                    <h4 class="card-title">${grant.title}</h4>
+                <div class="grant-card" data-id="${grantId}" style="animation-delay: ${Math.random() * 0.2}s">
+                    ${isFeatured ? '<div class="card-badge">注目</div>' : ''}
+                    <h4 class="card-title">${grantTitle}</h4>
                     <div class="card-meta">
                         <span class="meta-item">
                             <span class="meta-label">最大</span>
-                            <span class="meta-value">${grant.amount || '未定'}</span>
+                            <span class="meta-value">${grantAmount}</span>
                         </span>
                         <span class="meta-item">
                             <span class="meta-label">締切</span>
-                            <span class="meta-value">${grant.deadline || '随時'}</span>
+                            <span class="meta-value">${grantDeadline}</span>
                         </span>
                     </div>
-                    <p class="card-org">${grant.organization || ''}</p>
-                    ${grant.success_rate ? `
+                    <p class="card-org">${grantOrg}</p>
+                    ${successRate && successRate > 0 ? `
                         <div class="card-rate">
                             <div class="rate-bar">
-                                <div class="rate-fill" style="width: ${grant.success_rate}%"></div>
+                                <div class="rate-fill" style="width: ${successRate}%"></div>
                             </div>
-                            <span class="rate-text">採択率 ${grant.success_rate}%</span>
+                            <span class="rate-text">採択率 ${successRate}%</span>
                         </div>
                     ` : ''}
                     
                     <!-- Enhanced AI Assistant Integration -->
                     <div class="card-actions">
-                        <button class="ai-assist-btn" data-grant-id="${grant.id}" data-grant-title="${grant.title}">
+                        <button class="ai-assist-btn" data-grant-id="${grantId}" data-grant-title="${grantTitle}" onclick="window.aiSearchController.showGrantAssistant('${grantId}', '${grantTitle}')">
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                                 <path d="M7 1L9 5L13 5L10 8L11 12L7 10L3 12L4 8L1 5L5 5L7 1Z" stroke="currentColor" stroke-width="1.5"/>
                             </svg>
                             AI質問
                         </button>
-                        <a href="${grant.permalink}" class="card-link">
+                        <a href="${grantPermalink}" class="card-link">
                             詳細を見る
                             <svg width="12" height="12" viewBox="0 0 12 12">
                                 <path d="M2 6h8m0 0L7 3m3 3L7 9"/>
@@ -2342,21 +2387,7 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             }, 16);
         }
 
-        // Enhanced Grant Card Event Binding for AI Assistant
-        bindGrantCardEvents() {
-            // AI Assistant buttons in grant cards
-            document.querySelectorAll('.ai-assist-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const grantId = btn.dataset.grantId;
-                    const grantTitle = btn.dataset.grantTitle;
-                    
-                    this.showGrantAssistant(grantId, grantTitle);
-                });
-            });
-        }
+
 
         // Grant-specific AI Assistant Interface
         async showGrantAssistant(grantId, grantTitle) {
@@ -2603,58 +2634,80 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
         }
 
         showGrantAssistant(grantId, grantTitle) {
-            // Create modal if it doesn't exist
-            let modal = document.querySelector('.grant-assistant-modal');
-            if (!modal) {
-                modal = this.createGrantAssistantModal();
-                document.body.appendChild(modal);
-            }
+            try {
+                // データの検証
+                if (!grantId || !grantTitle) {
+                    console.error('Invalid grant data:', {grantId, grantTitle});
+                    this.showError('補助金データが不正です。');
+                    return;
+                }
 
-            // Update modal content
-            const titleElement = modal.querySelector('.grant-title');
-            if (titleElement) {
-                titleElement.textContent = grantTitle;
-                titleElement.dataset.grantId = grantId;
-            }
+                // Create modal if it doesn't exist
+                let modal = document.querySelector('.grant-assistant-modal');
+                if (!modal) {
+                    modal = this.createGrantAssistantModal();
+                    if (!modal) {
+                        console.error('Failed to create modal');
+                        return;
+                    }
+                    document.body.appendChild(modal);
+                }
 
-            // Clear previous chat and set up initial suggestions
-            const chatContainer = modal.querySelector('.assistant-chat');
-            const suggestionsContainer = modal.querySelector('.suggestion-buttons');
-            
-            if (chatContainer) {
-                chatContainer.innerHTML = `
-                    <div class="initial-message">
-                        <div class="message-bubble">
-                            「${grantTitle}」について何でもお聞きください！<br>
-                            以下のような質問にお答えできます：
+                // Update modal content with safe escaping
+                const titleElement = modal.querySelector('.grant-title');
+                if (titleElement) {
+                    titleElement.textContent = grantTitle;
+                    titleElement.dataset.grantId = grantId;
+                }
+
+                // Clear previous chat and set up initial suggestions
+                const chatContainer = modal.querySelector('.assistant-chat');
+                const suggestionsContainer = modal.querySelector('.suggestion-buttons');
+                
+                if (chatContainer) {
+                    const escapedTitle = grantTitle.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+                    chatContainer.innerHTML = `
+                        <div class="initial-message">
+                            <div class="message-bubble">
+                                「${escapedTitle}」について何でもお聞きください！<br>
+                                以下のような質問にお答えできます：
+                            </div>
                         </div>
-                    </div>
-                `;
-            }
+                    `;
+                }
 
-            // Set up contextual suggestions
-            if (suggestionsContainer) {
-                suggestionsContainer.innerHTML = this.getContextualSuggestions(grantId).map(suggestion => `
-                    <button class="suggestion-btn" data-grant-id="${grantId}" data-type="${suggestion.type}">
-                        ${suggestion.text}
-                    </button>
-                `).join('');
+                // Set up contextual suggestions
+                if (suggestionsContainer) {
+                    const suggestions = this.getContextualSuggestions(grantId);
+                    suggestionsContainer.innerHTML = suggestions.map(suggestion => `
+                        <button class="suggestion-btn" data-grant-id="${grantId}" data-type="${suggestion.type}">
+                            ${suggestion.text}
+                        </button>
+                    `).join('');
 
-                // Bind suggestion events
-                suggestionsContainer.querySelectorAll('.suggestion-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const questionText = btn.textContent;
-                        const questionType = btn.dataset.type;
-                        this.sendGrantQuestion(grantId, questionText, questionType);
+                    // Bind suggestion events
+                    suggestionsContainer.querySelectorAll('.suggestion-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const questionText = btn.textContent;
+                            const questionType = btn.dataset.type;
+                            this.sendGrantQuestion(grantId, questionText, questionType);
+                        });
                     });
-                });
+                }
+
+                // Setup chat input
+                this.setupGrantChatInput(modal, grantId);
+
+                // Show modal with animation
+                modal.classList.add('active');
+                
+                console.log('Grant assistant opened for:', {grantId, grantTitle});
+                
+            } catch (error) {
+                console.error('Error showing grant assistant:', error);
+                this.showError('AI アシスタントを開けませんでした。');
             }
-
-            // Setup chat input
-            this.setupGrantChatInput(modal, grantId);
-
-            // Show modal
-            modal.classList.add('active');
         }
 
         createGrantAssistantModal() {
@@ -2884,10 +2937,10 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            new AISearchController();
+            window.aiSearchController = new AISearchController();
         });
     } else {
-        new AISearchController();
+        window.aiSearchController = new AISearchController();
     }
 
 })();
