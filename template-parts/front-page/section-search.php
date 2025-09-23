@@ -153,6 +153,7 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                         <button class="quick-q" data-q="必要書類は？">必要書類</button>
                         <button class="quick-q" data-q="締切はいつ？">締切確認</button>
                         <button class="quick-q" data-q="採択率は？">採択率</button>
+                        <button id="debug-test-btn" class="quick-q" style="background: #ff6b6b; color: white;">🔧 DEBUG</button>
                     </div>
                 </div>
 
@@ -1319,10 +1320,11 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
     };
     
     // Debug: AJAXのURLとnonceを確認
-    console.log('AJAX Configuration:', {
+    console.log('🤖 AI Search System Configuration:', {
         url: CONFIG.API_URL,
-        nonce: CONFIG.NONCE,
-        session: CONFIG.SESSION_ID
+        nonce: CONFIG.NONCE ? 'Present' : 'Missing',
+        session: CONFIG.SESSION_ID,
+        hasGlobalConfig: !!window.gi_ajax_config
     });
 
     // Validate configuration
@@ -1361,6 +1363,7 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
 
         // AJAXテスト接続
         async testConnection() {
+            console.log('🔗 Testing AJAX connection...');
             try {
                 const formData = new FormData();
                 formData.append('action', 'gi_test_connection');
@@ -1372,9 +1375,35 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                 });
                 
                 const data = await response.json();
-                console.log('Test connection result:', data);
+                console.log('✅ AJAX Connection Success:', data);
+                
+                // Test AI search endpoint
+                this.testAISearchEndpoint();
             } catch (error) {
-                console.error('Test connection failed:', error);
+                console.error('❌ AJAX Connection Failed:', error);
+            }
+        }
+
+        // AI検索エンドポイントテスト
+        async testAISearchEndpoint() {
+            console.log('🔍 Testing AI Search endpoint...');
+            try {
+                const formData = new FormData();
+                formData.append('action', 'gi_ai_search');
+                formData.append('nonce', CONFIG.NONCE);
+                formData.append('query', 'test');
+                formData.append('session_id', CONFIG.SESSION_ID);
+                
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const result = await response.json();
+                console.log('✅ AI Search Endpoint Response:', result);
+            } catch (error) {
+                console.error('❌ AI Search Endpoint Failed:', error);
             }
         }
 
@@ -1441,6 +1470,15 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             this.elements.quickQuestions.forEach(btn => {
                 btn.addEventListener('click', this.handleQuickQuestion.bind(this));
             });
+
+            // Debug button
+            const debugBtn = document.getElementById('debug-test-btn');
+            if (debugBtn) {
+                debugBtn.addEventListener('click', () => {
+                    console.log('🔧 Debug Test Started');
+                    this.runDebugTests();
+                });
+            }
 
             // View controls
             this.elements.viewBtns.forEach(btn => {
@@ -1676,6 +1714,33 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             if (this.elements.searchInput.value) {
                 this.performSearch();
             }
+        }
+
+        // Debug Methods
+        async runDebugTests() {
+            console.log('🔧 Running AI Debug Tests...');
+            
+            // Test 1: Check configuration
+            console.log('1. Configuration Check:', {
+                API_URL: CONFIG.API_URL,
+                hasNonce: !!CONFIG.NONCE,
+                session: CONFIG.SESSION_ID
+            });
+            
+            // Test 2: Test connection
+            await this.testConnection();
+            
+            // Test 3: Test search with sample query
+            this.elements.searchInput.value = 'IT導入補助金';
+            console.log('3. Testing search with sample query...');
+            await this.performSearch();
+            
+            // Test 4: Test suggestions
+            console.log('4. Testing suggestions...');
+            await this.handleSearchInput({ target: { value: 'IT' } });
+            
+            console.log('✅ Debug tests completed');
+            alert('Debug tests completed! Check console for details.');
         }
 
         // Chat Methods
