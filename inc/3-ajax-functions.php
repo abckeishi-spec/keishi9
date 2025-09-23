@@ -1819,8 +1819,8 @@ function handle_ai_search() {
         ] : null
     ]);
 }
-add_action('wp_ajax_gi_ai_search', 'handle_ai_search');
-add_action('wp_ajax_nopriv_gi_ai_search', 'handle_ai_search');
+// add_action('wp_ajax_gi_ai_search', 'handle_ai_search'); // 一時的に無効化
+// add_action('wp_ajax_nopriv_gi_ai_search', 'handle_ai_search'); // 一時的に無効化
 
 /**
  * AIチャットハンドラー
@@ -1896,8 +1896,8 @@ function handle_ai_chat_request() {
         ] : null
     ]);
 }
-add_action('wp_ajax_gi_ai_chat', 'handle_ai_chat_request');
-add_action('wp_ajax_nopriv_gi_ai_chat', 'handle_ai_chat_request');
+// add_action('wp_ajax_gi_ai_chat', 'handle_ai_chat_request'); // 一時的に無効化
+// add_action('wp_ajax_nopriv_gi_ai_chat', 'handle_ai_chat_request'); // 一時的に無効化
 
 /**
  * 検索候補取得
@@ -4124,15 +4124,17 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
         gi_ajax_log_error('AJAX gi_load_grants called', $_POST);
     }, 1);
 }
-// AI検索関連のアクション登録確認（ファイル最後で再登録）
+// AI検索関連のアクション登録確認（ファイル最後で再登録） - 一時的に無効化
+/*
 if (!has_action('wp_ajax_gi_ai_search')) {
-    add_action('wp_ajax_gi_ai_search', 'handle_ai_search');
+    add_action('wp_ajax_gi_search', 'handle_ai_search');
     add_action('wp_ajax_nopriv_gi_ai_search', 'handle_ai_search');
 }
 if (!has_action('wp_ajax_gi_ai_chat')) {
     add_action('wp_ajax_gi_ai_chat', 'handle_ai_chat_request');
     add_action('wp_ajax_nopriv_gi_ai_chat', 'handle_ai_chat_request');
 }
+*/
 
 // パフォーマンス最適化: データベースインデックス追加
 function gi_add_search_performance_indexes() {
