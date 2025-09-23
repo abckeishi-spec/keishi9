@@ -1505,20 +1505,7 @@ function gi_format_deadline_display($deadline_date) {
     return $deadline_date;
 }
 
-/**
- * 残り日数計算
- */
-function gi_calculate_days_remaining($deadline_date) {
-    if (empty($deadline_date)) return null;
-    
-    $deadline_timestamp = is_numeric($deadline_date) ? intval($deadline_date) : strtotime($deadline_date);
-    if (!$deadline_timestamp) return null;
-    
-    $current_timestamp = current_time('timestamp');
-    $diff = $deadline_timestamp - $current_timestamp;
-    
-    return $diff > 0 ? ceil($diff / (60 * 60 * 24)) : 0;
-}
+// gi_calculate_days_remaining関数は inc/data-functions.php に統一
 
 /**
  * ステータス表示マッピング

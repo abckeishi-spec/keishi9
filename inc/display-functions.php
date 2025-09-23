@@ -49,22 +49,7 @@ class GrantCardRenderer {
      * 依存関数の確認
      */
     private function load_dependencies() {
-        if (!function_exists('gi_get_user_favorites')) {
-            function gi_get_user_favorites() {
-                $user_id = get_current_user_id();
-                if ($user_id) {
-                    return get_user_meta($user_id, 'gi_favorites', true) ?: [];
-                }
-                
-                // Cookie fallback
-                $cookie_name = 'gi_favorites';
-                if (isset($_COOKIE[$cookie_name])) {
-                    return array_filter(array_map('intval', explode(',', $_COOKIE[$cookie_name])));
-                }
-                
-                return [];
-            }
-        }
+        // gi_get_user_favorites関数は inc/data-functions.php で定義済み
     }
     
     /**
