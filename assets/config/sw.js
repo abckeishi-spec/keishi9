@@ -14,11 +14,9 @@ const API_CACHE_NAME = 'gi-api-v8.0';
 const STATIC_ASSETS = [
     '/',
     '/grants/',
-    '/assets/css/mobile-enhanced.css',
-    '/assets/js/mobile-enhanced.js',
+    '/assets/css/main.css',
     '/assets/js/main.js',
-    '/assets/css/optimized.css',
-    '/manifest.json',
+    '/assets/config/manifest.json',
     // CDN resources
     'https://cdn.tailwindcss.com',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
