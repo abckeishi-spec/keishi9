@@ -1820,63 +1820,6 @@ function handle_ai_chat_request() {
 /**
  * gi_ajax_search_suggestions - 復元された関数
  */
-function gi_ajax_search_suggestions() {
-    // nonceチェックをエラーハンドリング付きで実行
-    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'gi_ai_search_nonce')) {
-        wp_send_json_error(['message' => 'セキュリティチェックに失敗しました']);
-        return;
-    }
-    
-    $query = sanitize_text_field($_POST['query'] ?? '');
-    
-    if (strlen($query) < 2) {
-        wp_send_json_success(['suggestions' => []]);
-    }
-    
-    // 人気の検索キーワード
-    $popular_searches = gi_get_popular_searches(5);
-    
-    // 補助金タイトルから候補を生成
-    $grant_suggestions = gi_get_grant_title_suggestions($query, 3);
-    
-    // カテゴリーから候補を生成
-    $category_suggestions = gi_get_category_suggestions($query, 3);
-    
-    $suggestions = [];
-    
-    // 人気検索を追加
-    foreach (array_slice($popular_searches, 0, 3) as $search) {
-        $suggestions[] = ['type' => 'popular', 'text' => $search, 'icon' => '🔥'];
-    }
-    
-    // 助成金タイトルを追加
-    foreach ($grant_suggestions as $grant) {
-        $suggestions[] = [
-            'type' => 'grant', 
-            'text' => $grant['title'], 
-            'icon' => '📋',
-            'url' => $grant['url'],
-            'amount' => $grant['amount'],
-            'deadline' => $grant['deadline']
-        ];
-    }
-    
-    // カテゴリーを追加
-    foreach ($category_suggestions as $category) {
-        $suggestions[] = [
-            'type' => 'category', 
-            'text' => $category['name'], 
-            'icon' => '📁',
-            'count' => $category['count'],
-            'url' => $category['url']
-        ];
-    }
-    
-    // 重複削除と上限設定
-    $suggestions = array_slice($suggestions, 0, 8);
-    
-    wp_send_json_success(['suggestions' => $suggestions]);
-}
 
 
 /**
