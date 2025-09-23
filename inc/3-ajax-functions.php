@@ -1670,19 +1670,31 @@ function handle_ai_search() {
                 
                 $relevance_score = gi_calculate_relevance_score($post_id, $keywords, $query);
                 
+                // 金額の適切な取得と表示形式
+                $amount_raw = get_post_meta($post_id, 'max_amount', true) ?: get_post_meta($post_id, 'grant_amount', true);
+                $amount_formatted = gi_format_amount_display($amount_raw);
+                
+                // 締切の適切な取得と表示形式
+                $deadline_raw = get_post_meta($post_id, 'deadline', true) ?: get_post_meta($post_id, 'application_deadline', true);
+                $deadline_formatted = gi_format_deadline_display($deadline_raw);
+                
                 $grants[] = [
                     'id' => $post_id,
                     'title' => get_the_title(),
-                    'url' => get_permalink(),
+                    'permalink' => get_permalink(), // フロントエンドが期待するフィールド名
+                    'url' => get_permalink(), // 互換性のため両方提供
                     'excerpt' => wp_trim_words(get_the_excerpt(), 20),
                     'image_url' => get_the_post_thumbnail_url($post_id, 'medium'),
-                    'amount' => get_post_meta($post_id, 'max_amount', true) ?: get_post_meta($post_id, 'grant_amount', true),
-                    'deadline' => get_post_meta($post_id, 'deadline', true) ?: get_post_meta($post_id, 'application_deadline', true),
+                    'amount' => $amount_formatted, // フォーマット済み金額
+                    'amount_raw' => $amount_raw, // 生の金額データ
+                    'deadline' => $deadline_formatted, // フォーマット済み締切
+                    'deadline_raw' => $deadline_raw, // 生の締切データ
                     'organization' => get_post_meta($post_id, 'organization', true) ?: get_post_meta($post_id, 'managing_organization', true),
                     'success_rate' => get_post_meta($post_id, 'grant_success_rate', true) ?: get_post_meta($post_id, 'success_rate', true),
-                    'is_featured' => get_post_meta($post_id, 'is_featured', true),
+                    'featured' => get_post_meta($post_id, 'is_featured', true), // フロントエンド期待値
+                    'is_featured' => get_post_meta($post_id, 'is_featured', true), // 互換性
                     'relevance_score' => $relevance_score,
-                    'similarity_score' => 0.7, // フォールバックのデフォルト値
+                    'similarity_score' => 0.7,
                     'application_status' => get_post_meta($post_id, 'application_status', true),
                     'categories' => wp_get_post_terms($post_id, 'grant_category', ['fields' => 'names'])
                 ];
@@ -1711,13 +1723,15 @@ function handle_ai_search() {
     
     wp_send_json_success([
         'grants' => $display_grants,
-        'total_count' => $total_count,
+        'count' => $total_count, // フロントエンドが期待するフィールド名
+        'total_count' => $total_count, // 互換性
         'display_count' => count($display_grants),
         'ai_response' => $ai_response,
         'keywords' => $keywords,
         'session_id' => $session_id,
         'search_method' => $search_result['method'] ?? 'fallback',
         'processing_time_ms' => $processing_time,
+        'ai_suggestions' => gi_generate_search_suggestions($query, $display_grants),
         'debug' => WP_DEBUG ? [
             'query_params' => $search_params,
             'filter' => $filter,
@@ -2485,6 +2499,919 @@ function gi_extract_keywords($query) {
 
 
 /**
+ * =============================================================================
+ * 9. 補助金AI アシスタント機能強化
+ * =============================================================================
+ */
+
+/**
+ * 補助金固有のAIアシスタント機能
+ */
+function gi_ajax_grant_assistant() {
+    // nonceチェック
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'gi_ajax_nonce')) {
+        wp_send_json_error('セキュリティチェックに失敗しました');
+    }
+    
+    $grant_id = intval($_POST['grant_id'] ?? 0);
+    $question_type = sanitize_text_field($_POST['question_type'] ?? '');
+    $custom_question = sanitize_textarea_field($_POST['custom_question'] ?? '');
+    $session_id = sanitize_text_field($_POST['session_id'] ?? '');
+    
+    if (!$grant_id || !get_post($grant_id)) {
+        wp_send_json_error('無効な補助金IDです');
+    }
+    
+    // セッションID生成
+    if (empty($session_id)) {
+        $session_id = wp_generate_uuid4();
+    }
+    
+    $start_time = microtime(true);
+    
+    // 補助金データ取得
+    $grant_data = gi_get_complete_grant_data($grant_id);
+    
+    // 質問タイプに応じた応答生成
+    $response = '';
+    $suggestions = [];
+    
+    switch ($question_type) {
+        case 'overview':
+            $response = gi_generate_grant_overview($grant_data);
+            $suggestions = [
+                '申請手順を教えて',
+                '必要書類は何ですか？',
+                '締切はいつですか？',
+                '採択のコツを教えて'
+            ];
+            break;
+            
+        case 'requirements':
+            $response = gi_generate_requirements_info($grant_data);
+            $suggestions = [
+                '申請資格を詳しく教えて',
+                'どんな費用が対象？',
+                '申請書の書き方',
+                '審査基準について'
+            ];
+            break;
+            
+        case 'process':
+            $response = gi_generate_process_info($grant_data);
+            $suggestions = [
+                '申請スケジュール',
+                '必要な準備期間',
+                '審査期間はどのくらい？',
+                '採択後の手続き'
+            ];
+            break;
+            
+        case 'tips':
+            $response = gi_generate_success_tips($grant_data);
+            $suggestions = [
+                '採択率を上げる方法',
+                '申請書のポイント',
+                '審査員の視点',
+                '失敗例を教えて'
+            ];
+            break;
+            
+        case 'custom':
+            $response = gi_generate_custom_response($grant_data, $custom_question);
+            $suggestions = gi_generate_contextual_suggestions_for_grant($grant_data, $custom_question);
+            break;
+            
+        default:
+            $response = gi_generate_grant_overview($grant_data);
+            $suggestions = [
+                '申請について詳しく',
+                '対象要件を教えて',
+                '申請手順を知りたい',
+                '成功のコツは？'
+            ];
+    }
+    
+    $end_time = microtime(true);
+    $processing_time = round(($end_time - $start_time) * 1000);
+    
+    // チャット履歴保存
+    $user_question = $question_type === 'custom' ? $custom_question : gi_get_question_text($question_type);
+    gi_save_chat_message($session_id, 'user', $user_question, $question_type, [$grant_id]);
+    gi_save_chat_message($session_id, 'assistant', $response, $question_type, [$grant_id], $processing_time);
+    
+    wp_send_json_success([
+        'response' => $response,
+        'suggestions' => $suggestions,
+        'grant_info' => [
+            'id' => $grant_id,
+            'title' => $grant_data['title'],
+            'amount' => $grant_data['amount_formatted'],
+            'deadline' => $grant_data['deadline_formatted'],
+            'organization' => $grant_data['organization']
+        ],
+        'session_id' => $session_id,
+        'processing_time_ms' => $processing_time,
+        'question_type' => $question_type
+    ]);
+}
+add_action('wp_ajax_gi_grant_assistant', 'gi_ajax_grant_assistant');
+add_action('wp_ajax_nopriv_gi_grant_assistant', 'gi_ajax_grant_assistant');
+
+
+/**
+ * 強化された検索提案生成
+ */
+function gi_generate_search_suggestions($query, $grants = []) {
+    $suggestions = [];
+    
+    // 検索結果に基づく提案
+    if (!empty($grants)) {
+        $categories = [];
+        $organizations = [];
+        $amounts = [];
+        
+        foreach ($grants as $grant) {
+            if (!empty($grant['categories'])) {
+                $categories = array_merge($categories, $grant['categories']);
+            }
+            if (!empty($grant['organization'])) {
+                $organizations[] = $grant['organization'];
+            }
+            if (!empty($grant['amount'])) {
+                $amounts[] = $grant['amount'];
+            }
+        }
+        
+        $unique_categories = array_unique($categories);
+        $unique_orgs = array_unique($organizations);
+        
+        // カテゴリー別の深掘り提案
+        if (!empty($unique_categories)) {
+            $category = $unique_categories[0];
+            $suggestions[] = $category . '以外の補助金も見つけて';
+            $suggestions[] = $category . 'の申請方法を教えて';
+        }
+        
+        // 組織別の提案
+        if (!empty($unique_orgs)) {
+            $org = $unique_orgs[0];
+            $suggestions[] = $org . 'の他の補助金は？';
+        }
+        
+        // 金額に関する提案
+        if (count($grants) > 1) {
+            $suggestions[] = 'より高額な補助金を探して';
+            $suggestions[] = '申請しやすい補助金はどれ？';
+        }
+        
+        // 締切に関する提案
+        $suggestions[] = '締切が近い補助金を優先して';
+        $suggestions[] = '採択率が高い補助金を教えて';
+    }
+    
+    // クエリに基づく一般的な提案
+    if (mb_stripos($query, 'IT') !== false || mb_stripos($query, 'デジタル') !== false) {
+        $suggestions[] = 'DX推進に使える補助金は？';
+        $suggestions[] = 'システム導入の補助金を教えて';
+        $suggestions[] = 'IT導入補助金の申請条件は？';
+    }
+    
+    if (mb_stripos($query, 'ものづくり') !== false || mb_stripos($query, '製造') !== false) {
+        $suggestions[] = '設備投資の補助金を探して';
+        $suggestions[] = 'ものづくり補助金の採択のコツは？';
+        $suggestions[] = '製造業向けの支援制度は？';
+    }
+    
+    if (mb_stripos($query, '創業') !== false || mb_stripos($query, '起業') !== false) {
+        $suggestions[] = 'スタートアップ向けの補助金は？';
+        $suggestions[] = '創業時に使える支援制度';
+        $suggestions[] = '起業資金の調達方法を教えて';
+    }
+    
+    // デフォルト提案
+    if (empty($suggestions)) {
+        $suggestions = [
+            '申請しやすい補助金を教えて',
+            '締切が近い補助金は？',
+            '高額な補助金を探して',
+            '採択率の高い補助金は？',
+            '必要書類が少ない補助金は？'
+        ];
+    }
+    
+    // 重複除去と上限設定
+    $suggestions = array_unique($suggestions);
+    return array_slice($suggestions, 0, 5);
+}
+
+
+/**
+ * 補助金概要生成
+ */
+function gi_generate_grant_overview($grant_data) {
+    $title = $grant_data['title'] ?? '補助金';
+    $amount = $grant_data['amount_formatted'] ?? '未定';
+    $organization = $grant_data['organization'] ?? '';
+    $deadline = $grant_data['deadline_formatted'] ?? '随時';
+    $target = $grant_data['grant_target'] ?? '';
+    $summary = $grant_data['ai_summary'] ?? '';
+    
+    $overview = "【{$title}】の概要をご説明します。\n\n";
+    
+    // 基本情報
+    $overview .= "💰 **助成額**: 最大{$amount}\n";
+    $overview .= "🏢 **実施組織**: {$organization}\n";
+    $overview .= "📅 **申請締切**: {$deadline}\n\n";
+    
+    // 対象者・対象事業
+    if (!empty($target)) {
+        $overview .= "🎯 **対象者**: {$target}\n\n";
+    }
+    
+    // AI要約がある場合
+    if (!empty($summary)) {
+        $overview .= "📋 **概要**: {$summary}\n\n";
+    }
+    
+    // 次のステップ提案
+    $overview .= "詳細な申請要件や手順について、お気軽にお聞きください。";
+    
+    return $overview;
+}
+
+
+/**
+ * 申請要件情報生成
+ */
+function gi_generate_requirements_info($grant_data) {
+    $title = $grant_data['title'] ?? '補助金';
+    $target = $grant_data['grant_target'] ?? '';
+    $eligible_expenses = $grant_data['eligible_expenses'] ?? '';
+    $amount_note = $grant_data['amount_note'] ?? '';
+    $difficulty = $grant_data['difficulty_info']['label'] ?? $grant_data['grant_difficulty'];
+    
+    $info = "【{$title}】の申請要件をご案内します。\n\n";
+    
+    // 対象者
+    if (!empty($target)) {
+        $info .= "👥 **申請対象者**\n";
+        $info .= $target . "\n\n";
+    }
+    
+    // 対象経費
+    if (!empty($eligible_expenses)) {
+        $info .= "💸 **対象となる経費**\n";
+        $info .= $eligible_expenses . "\n\n";
+    }
+    
+    // 助成額の詳細
+    if (!empty($amount_note)) {
+        $info .= "💰 **助成額の詳細**\n";
+        $info .= $amount_note . "\n\n";
+    }
+    
+    // 難易度
+    if (!empty($difficulty)) {
+        $info .= "⭐ **申請難易度**: {$difficulty}\n\n";
+    }
+    
+    $info .= "具体的な申請書類や手続きについて詳しく知りたい場合は、お聞かせください。";
+    
+    return $info;
+}
+
+
+/**
+ * 申請プロセス情報生成
+ */
+function gi_generate_process_info($grant_data) {
+    $title = $grant_data['title'] ?? '補助金';
+    $application_method = $grant_data['application_method'] ?? '';
+    $required_documents = $grant_data['required_documents'] ?? '';
+    $deadline = $grant_data['deadline_formatted'] ?? '随時';
+    $contact_info = $grant_data['contact_info'] ?? '';
+    
+    $info = "【{$title}】の申請プロセスをご案内します。\n\n";
+    
+    // 申請方法
+    if (!empty($application_method)) {
+        $method_text = $application_method === 'online' ? 'オンライン申請' : 
+                      ($application_method === 'paper' ? '書面申請' : $application_method);
+        $info .= "📝 **申請方法**: {$method_text}\n\n";
+    }
+    
+    // 必要書類
+    if (!empty($required_documents)) {
+        $info .= "📄 **必要書類**\n";
+        $info .= $required_documents . "\n\n";
+    }
+    
+    // 締切
+    $info .= "⏰ **申請締切**: {$deadline}\n\n";
+    
+    // 申請の流れ（一般的な流れを提示）
+    $info .= "📋 **一般的な申請の流れ**\n";
+    $info .= "1. 申請要件の確認\n";
+    $info .= "2. 必要書類の準備\n";
+    $info .= "3. 申請書の作成・提出\n";
+    $info .= "4. 審査・採択通知\n";
+    $info .= "5. 交付決定・事業開始\n";
+    $info .= "6. 実績報告・確定検査\n\n";
+    
+    // 問い合わせ先
+    if (!empty($contact_info)) {
+        $info .= "📞 **問い合わせ先**: {$contact_info}\n\n";
+    }
+    
+    $info .= "各ステップの詳細や注意点について、さらに詳しくお聞かせください。";
+    
+    return $info;
+}
+
+
+/**
+ * 成功のコツ生成
+ */
+function gi_generate_success_tips($grant_data) {
+    $title = $grant_data['title'] ?? '補助金';
+    $success_rate = $grant_data['grant_success_rate'] ?? 0;
+    $difficulty = $grant_data['grant_difficulty'] ?? 'normal';
+    
+    $tips = "【{$title}】採択のコツをお教えします。\n\n";
+    
+    // 採択率情報
+    if ($success_rate > 0) {
+        $tips .= "📊 **採択率**: 約{$success_rate}%\n\n";
+        
+        if ($success_rate >= 70) {
+            $tips .= "✅ この補助金は比較的採択率が高く、要件を満たせば採択の可能性が高いです。\n\n";
+        } elseif ($success_rate >= 50) {
+            $tips .= "⚡ 中程度の競争率です。しっかりとした申請書作成が重要です。\n\n";
+        } else {
+            $tips .= "🔥 競争が激しい補助金です。特に丁寧な申請書作成が必要です。\n\n";
+        }
+    }
+    
+    // 難易度別アドバイス
+    $tips .= "💡 **成功のポイント**\n";
+    
+    if ($difficulty === 'easy') {
+        $tips .= "• 基本的な要件を確実に満たす\n";
+        $tips .= "• 必要書類の漏れがないようチェック\n";
+        $tips .= "• 申請期限に余裕を持って提出\n";
+    } elseif ($difficulty === 'hard') {
+        $tips .= "• 事業計画書の緻密な作成\n";
+        $tips .= "• 専門家によるレビューを推奨\n";
+        $tips .= "• 過去の採択事例を参考にする\n";
+        $tips .= "• 早めの準備開始（2-3ヶ月前から）\n";
+    } else {
+        $tips .= "• 事業の必要性を明確に示す\n";
+        $tips .= "• 具体的で実現可能な計画を作成\n";
+        $tips .= "• 経費の妥当性を説明\n";
+        $tips .= "• 事業効果を数値で示す\n";
+    }
+    
+    $tips .= "\n🎯 **よくある失敗例**\n";
+    $tips .= "• 要件の見落とし\n";
+    $tips .= "• 書類の不備・記載ミス\n";
+    $tips .= "• 事業計画の具体性不足\n";
+    $tips .= "• 締切直前の慌てた申請\n\n";
+    
+    $tips .= "具体的な申請書作成のポイントについて、さらに詳しくお聞きください。";
+    
+    return $tips;
+}
+
+
+/**
+ * カスタム質問応答生成
+ */
+function gi_generate_custom_response($grant_data, $question) {
+    $title = $grant_data['title'] ?? '補助金';
+    
+    // キーワードベースの応答
+    if (mb_stripos($question, '採択率') !== false || mb_stripos($question, '成功率') !== false) {
+        return gi_generate_success_tips($grant_data);
+    }
+    
+    if (mb_stripos($question, '必要書類') !== false || mb_stripos($question, '書類') !== false) {
+        return gi_generate_requirements_info($grant_data);
+    }
+    
+    if (mb_stripos($question, '申請') !== false && mb_stripos($question, '流れ') !== false) {
+        return gi_generate_process_info($grant_data);
+    }
+    
+    if (mb_stripos($question, '締切') !== false || mb_stripos($question, '期限') !== false) {
+        $deadline = $grant_data['deadline_formatted'] ?? '随時';
+        return "【{$title}】の申請締切は{$deadline}です。\n\n申請には十分な準備期間が必要ですので、早めの準備をおすすめします。申請手続きの詳細についてもお聞きください。";
+    }
+    
+    if (mb_stripos($question, '金額') !== false || mb_stripos($question, '助成額') !== false) {
+        $amount = $grant_data['amount_formatted'] ?? '未定';
+        $amount_note = $grant_data['amount_note'] ?? '';
+        $response = "【{$title}】の助成額は最大{$amount}です。";
+        if (!empty($amount_note)) {
+            $response .= "\n\n" . $amount_note;
+        }
+        return $response;
+    }
+    
+    // デフォルト応答
+    return "【{$title}】について、ご質問「{$question}」にお答えします。\n\n申し訳ございませんが、より具体的な質問をしていただけると、詳しい情報をお提供できます。\n\n例えば：\n• 申請要件について\n• 必要書類について\n• 申請の流れについて\n• 採択のコツについて\n\nどの点について詳しく知りたいですか？";
+}
+
+
+/**
+ * 補助金固有のコンテキスト提案生成
+ */
+function gi_generate_contextual_suggestions_for_grant($grant_data, $question = '') {
+    $suggestions = [];
+    
+    // 質問内容に基づく提案
+    if (!empty($question)) {
+        if (mb_stripos($question, '申請') !== false) {
+            $suggestions = [
+                '必要書類を教えて',
+                '申請の締切はいつ？',
+                '申請方法について',
+                '審査期間はどのくらい？'
+            ];
+        } elseif (mb_stripos($question, '採択') !== false) {
+            $suggestions = [
+                '採択率を上げる方法',
+                '審査のポイントは？',
+                '過去の採択事例',
+                '不採択になる理由'
+            ];
+        } elseif (mb_stripos($question, '金額') !== false) {
+            $suggestions = [
+                '対象となる経費は？',
+                '補助率はどのくらい？',
+                '自己負担額は？',
+                '交付時期について'
+            ];
+        }
+    }
+    
+    // デフォルト提案
+    if (empty($suggestions)) {
+        $suggestions = [
+            'この補助金の特徴は？',
+            '申請の難易度について',
+            '似たような補助金は？',
+            '申請準備のスケジュール',
+            '専門家のサポート'
+        ];
+    }
+    
+    return array_slice($suggestions, 0, 4);
+}
+
+
+/**
+ * 質問タイプのテキスト取得
+ */
+function gi_get_question_text($question_type) {
+    $question_texts = [
+        'overview' => 'この補助金の概要を教えて',
+        'requirements' => '申請要件について教えて',
+        'process' => '申請の流れを教えて',
+        'tips' => '採択のコツを教えて'
+    ];
+    
+    return $question_texts[$question_type] ?? '補助金について教えて';
+}
+
+
+/**
+ * =============================================================================
+ * 10. 追加のユーティリティ関数群
+ * =============================================================================
+ */
+
+/**
+ * 安全なメタフィールド取得（フォールバック対応）
+ */
+if (!function_exists('gi_safe_get_meta')) {
+    function gi_safe_get_meta($post_id, $key, $default = '') {
+        $value = get_post_meta($post_id, $key, true);
+        return !empty($value) ? $value : $default;
+    }
+}
+
+/**
+ * 残り日数計算（重複宣言エラー対策）
+ */
+if (!function_exists('gi_calculate_days_remaining')) {
+    function gi_calculate_days_remaining($deadline_date) {
+        if (empty($deadline_date)) return null;
+        
+        $deadline = is_numeric($deadline_date) ? intval($deadline_date) : strtotime($deadline_date);
+        if (!$deadline) return null;
+        
+        $today = current_time('timestamp');
+        $diff = $deadline - $today;
+        
+        return max(0, floor($diff / (24 * 60 * 60)));
+    }
+}
+
+/**
+ * ステータス表示マッピング
+ */
+function gi_map_status_for_display($status) {
+    $status_map = [
+        'open' => '募集中',
+        'closed' => '締切済み',
+        'upcoming' => '募集予定',
+        'suspended' => '一時停止'
+    ];
+    
+    return $status_map[$status] ?? '未定';
+}
+
+/**
+ * 難易度情報取得
+ */
+function gi_get_difficulty_info($difficulty) {
+    $difficulty_map = [
+        'easy' => [
+            'label' => '易しい',
+            'description' => '基本要件を満たせば採択されやすい',
+            'color' => '#10b981'
+        ],
+        'normal' => [
+            'label' => '普通',
+            'description' => '一般的な競争率',
+            'color' => '#f59e0b'
+        ],
+        'hard' => [
+            'label' => '難しい',
+            'description' => '競争が激しく、十分な準備が必要',
+            'color' => '#ef4444'
+        ]
+    ];
+    
+    return $difficulty_map[$difficulty] ?? $difficulty_map['normal'];
+}
+
+/**
+ * セマンティック検索の統合関数
+ */
+function gi_enhanced_semantic_search($query, $filters = []) {
+    // セマンティック検索クラスが利用可能な場合
+    if (class_exists('GI_Grant_Semantic_Search')) {
+        $semantic_search = GI_Grant_Semantic_Search::getInstance();
+        return $semantic_search->search($query, $filters);
+    }
+    
+    // フォールバック: 通常のWP_Query
+    return gi_fallback_search($query, $filters);
+}
+
+/**
+ * フォールバック検索
+ */
+function gi_fallback_search($query, $filters = []) {
+    $args = [
+        'post_type' => 'grant',
+        'posts_per_page' => 30,
+        'post_status' => 'publish',
+        's' => $query
+    ];
+    
+    // フィルター適用
+    if (!empty($filters['category'])) {
+        $args['tax_query'] = [[
+            'taxonomy' => 'grant_category',
+            'field' => 'slug',
+            'terms' => $filters['category']
+        ]];
+    }
+    
+    $query_obj = new WP_Query($args);
+    $results = [];
+    
+    if ($query_obj->have_posts()) {
+        while ($query_obj->have_posts()) {
+            $query_obj->the_post();
+            $post_id = get_the_ID();
+            
+            $results[] = [
+                'id' => $post_id,
+                'title' => get_the_title(),
+                'excerpt' => get_the_excerpt(),
+                'url' => get_permalink(),
+                'amount' => gi_safe_get_meta($post_id, 'max_amount', '未定'),
+                'deadline' => gi_safe_get_meta($post_id, 'deadline', '随時'),
+                'organization' => gi_safe_get_meta($post_id, 'organization', ''),
+                'categories' => wp_get_post_terms($post_id, 'grant_category', ['fields' => 'names']),
+                'score' => 0.8 // デフォルトスコア
+            ];
+        }
+        wp_reset_postdata();
+    }
+    
+    return [
+        'success' => true,
+        'results' => $results,
+        'count' => count($results),
+        'method' => 'fallback_wp_query'
+    ];
+}
+
+/**
+ * 関連性スコア計算
+ */
+function gi_calculate_relevance_score($post_id, $keywords, $query) {
+    $score = 0;
+    $post = get_post($post_id);
+    if (!$post) return 0;
+    
+    // タイトルでのマッチ
+    $title = $post->post_title;
+    foreach ($keywords as $keyword) {
+        if (mb_stripos($title, $keyword) !== false) {
+            $score += 30; // タイトルマッチは高スコア
+        }
+    }
+    
+    // 直接的なクエリマッチ
+    if (mb_stripos($title, $query) !== false) {
+        $score += 25;
+    }
+    
+    // コンテンツでのマッチ
+    $content = $post->post_content;
+    foreach ($keywords as $keyword) {
+        if (mb_stripos($content, $keyword) !== false) {
+            $score += 10;
+        }
+    }
+    
+    // メタフィールドでのマッチ
+    $meta_fields = ['organization', 'grant_target', 'ai_summary'];
+    foreach ($meta_fields as $field) {
+        $meta_value = get_post_meta($post_id, $field, true);
+        if (!empty($meta_value)) {
+            foreach ($keywords as $keyword) {
+                if (mb_stripos($meta_value, $keyword) !== false) {
+                    $score += 15;
+                }
+            }
+        }
+    }
+    
+    // 注目の補助金ボーナス
+    if (get_post_meta($post_id, 'is_featured', true)) {
+        $score += 5;
+    }
+    
+    return min(100, $score); // 最大100点
+}
+
+/**
+ * 検索クエリ解析
+ */
+function gi_parse_search_query($query) {
+    $params = [
+        'intent' => 'general_search',
+        'entities' => [],
+        'modifiers' => []
+    ];
+    
+    // 意図の分析
+    if (mb_stripos($query, '申請') !== false || mb_stripos($query, '応募') !== false) {
+        $params['intent'] = 'application_inquiry';
+    } elseif (mb_stripos($query, '締切') !== false || mb_stripos($query, '期限') !== false) {
+        $params['intent'] = 'deadline_inquiry';
+    } elseif (mb_stripos($query, '金額') !== false || mb_stripos($query, '助成額') !== false) {
+        $params['intent'] = 'amount_inquiry';
+    }
+    
+    // エンティティ抽出
+    $entity_patterns = [
+        'amount' => '/(\d+)万円|(\d+)円/',
+        'industry' => '/IT|製造業|サービス業|建設業/',
+        'region' => '/東京|大阪|名古屋|福岡|北海道/'
+    ];
+    
+    foreach ($entity_patterns as $type => $pattern) {
+        if (preg_match($pattern, $query, $matches)) {
+            $params['entities'][$type] = $matches[0];
+        }
+    }
+    
+    return $params;
+}
+
+/**
+ * 会話コンテキスト応答生成
+ */
+function gi_generate_contextual_chat_response($message, $intent, $conversation_context, $related_grants = []) {
+    // 基本的な応答生成
+    $base_response = '';
+    
+    switch ($intent['type']) {
+        case 'grant_search':
+            if (!empty($related_grants)) {
+                $count = count($related_grants);
+                $base_response = "{$count}件の関連する補助金が見つかりました。";
+                
+                // 最初の3件の概要を提示
+                $top_grants = array_slice($related_grants, 0, 3);
+                foreach ($top_grants as $grant) {
+                    $base_response .= "\n\n📋 {$grant['title']}\n";
+                    $base_response .= "💰 {$grant['amount']}\n";
+                    $base_response .= "📅 {$grant['deadline']}";
+                }
+                
+                $base_response .= "\n\nどの補助金について詳しく知りたいですか？";
+            } else {
+                $base_response = "申し訳ございませんが、該当する補助金が見つかりませんでした。検索条件を変更してお試しください。";
+            }
+            break;
+            
+        case 'deadline_inquiry':
+            if (!empty($related_grants)) {
+                $base_response = "締切が近い補助金をお探しですね。以下の補助金がおすすめです：\n\n";
+                foreach (array_slice($related_grants, 0, 3) as $grant) {
+                    $base_response .= "• {$grant['title']} - 締切：{$grant['deadline']}\n";
+                }
+            } else {
+                $base_response = "現在募集中の補助金の締切情報をお調べいたします。具体的な業種や用途をお教えいただけますか？";
+            }
+            break;
+            
+        case 'amount_inquiry':
+            if (!empty($related_grants)) {
+                $base_response = "助成金額についてご案内します。以下の補助金が該当します：\n\n";
+                foreach (array_slice($related_grants, 0, 3) as $grant) {
+                    $base_response .= "• {$grant['title']} - 最大：{$grant['amount']}\n";
+                }
+            } else {
+                $base_response = "ご希望の金額帯の補助金をお探しします。どのくらいの金額をご希望ですか？";
+            }
+            break;
+            
+        default:
+            $base_response = "ご質問ありがとうございます。「{$message}」について、詳しい情報をお調べいたします。\n\n";
+            
+            if (!empty($related_grants)) {
+                $base_response .= "関連する補助金が見つかりました。どちらについて詳しく知りたいですか？";
+            } else {
+                $base_response .= "より具体的な条件をお聞かせいただければ、適切な補助金をご提案できます。";
+            }
+    }
+    
+    return $base_response;
+}
+
+/**
+ * コンテキスト提案生成
+ */
+function gi_generate_contextual_suggestions($intent, $message, $related_grants = []) {
+    $suggestions = [];
+    
+    switch ($intent['type']) {
+        case 'grant_search':
+            $suggestions = [
+                '申請方法を教えて',
+                '必要書類は？',
+                '締切はいつ？',
+                '採択率について'
+            ];
+            break;
+            
+        case 'deadline_inquiry':
+            $suggestions = [
+                '申請準備期間は？',
+                '締切延長はある？',
+                '申請のスケジュール',
+                '早期申請のメリット'
+            ];
+            break;
+            
+        case 'amount_inquiry':
+            $suggestions = [
+                '対象経費について',
+                '補助率は？',
+                '上限額の詳細',
+                '支払い時期は？'
+            ];
+            break;
+            
+        default:
+            $suggestions = [
+                '申請条件について',
+                '似た補助金を探す',
+                '申請の流れ',
+                '成功のコツ'
+            ];
+    }
+    
+    return $suggestions;
+}
+
+/**
+ * 音声認識フォールバック
+ */
+function gi_fallback_audio_transcription($audio_data) {
+    // 基本的な音声認識処理（実装例）
+    // 実際の音声認識には外部APIが必要
+    error_log('Fallback audio transcription called - OpenAI Whisper not available');
+    return '申し訳ございません。音声認識に失敗しました。テキストで入力してください。';
+}
+
+/**
+ * 補助金タイトル候補取得（改良版）
+ */
+function gi_get_grant_title_suggestions($query, $limit = 5) {
+    global $wpdb;
+    
+    if (strlen($query) < 2) {
+        return [];
+    }
+    
+    $cache_key = 'gi_title_suggestions_' . md5($query) . '_' . $limit;
+    $suggestions = wp_cache_get($cache_key);
+    
+    if (false === $suggestions) {
+        $like_query = '%' . $wpdb->esc_like($query) . '%';
+        
+        $results = $wpdb->get_results($wpdb->prepare("
+            SELECT p.post_title as title, p.ID, p.guid as url,
+                   pm1.meta_value as amount, pm2.meta_value as deadline
+            FROM {$wpdb->posts} p
+            LEFT JOIN {$wpdb->postmeta} pm1 ON (p.ID = pm1.post_id AND pm1.meta_key = 'max_amount')
+            LEFT JOIN {$wpdb->postmeta} pm2 ON (p.ID = pm2.post_id AND pm2.meta_key = 'deadline')
+            WHERE p.post_type = 'grant' 
+            AND p.post_status = 'publish' 
+            AND p.post_title LIKE %s 
+            ORDER BY p.post_date DESC 
+            LIMIT %d
+        ", $like_query, $limit));
+        
+        $suggestions = [];
+        foreach ($results as $result) {
+            $suggestions[] = [
+                'title' => $result->title,
+                'url' => get_permalink($result->ID),
+                'amount' => gi_format_amount_display($result->amount),
+                'deadline' => gi_format_deadline_display($result->deadline)
+            ];
+        }
+        
+        // キャッシュ（30分）
+        wp_cache_set($cache_key, $suggestions, '', 1800);
+    }
+    
+    return $suggestions;
+}
+
+/**
+ * カテゴリー候補取得（改良版）
+ */
+function gi_get_category_suggestions($query, $limit = 5) {
+    if (strlen($query) < 2) {
+        return [];
+    }
+    
+    $cache_key = 'gi_category_suggestions_' . md5($query) . '_' . $limit;
+    $suggestions = wp_cache_get($cache_key);
+    
+    if (false === $suggestions) {
+        $terms = get_terms([
+            'taxonomy' => 'grant_category',
+            'name__like' => $query,
+            'number' => $limit,
+            'hide_empty' => true,
+            'orderby' => 'count',
+            'order' => 'DESC'
+        ]);
+        
+        $suggestions = [];
+        if (!is_wp_error($terms)) {
+            foreach ($terms as $term) {
+                $suggestions[] = [
+                    'name' => $term->name,
+                    'count' => $term->count,
+                    'url' => get_term_link($term)
+                ];
+            }
+        }
+        
+        // キャッシュ（1時間）
+        wp_cache_set($cache_key, $suggestions, '', 3600);
+    }
+    
+    return $suggestions;
+}
+
+
+/**
  * gi_calculate_relevance_score - 復元された関数
  */
 function gi_calculate_relevance_score($post_id, $keywords, $original_query = '') {
@@ -2951,6 +3878,16 @@ add_action('wp_ajax_gi_ai_chat', 'handle_ai_chat_request');
 add_action('wp_ajax_nopriv_gi_ai_chat', 'handle_ai_chat_request');
 add_action('wp_ajax_gi_search_suggestions', 'gi_ajax_search_suggestions');
 add_action('wp_ajax_nopriv_gi_search_suggestions', 'gi_ajax_search_suggestions');
+
+// AI検索・チャット関連のアクションフック追加
+add_action('wp_ajax_gi_ai_search', 'handle_ai_search');
+add_action('wp_ajax_nopriv_gi_ai_search', 'handle_ai_search');
+
+add_action('wp_ajax_gi_ai_chat', 'handle_ai_chat_request');
+add_action('wp_ajax_nopriv_gi_ai_chat', 'handle_ai_chat_request');
+
+add_action('wp_ajax_gi_process_voice_input', 'gi_ajax_process_voice_input');
+add_action('wp_ajax_nopriv_gi_process_voice_input', 'gi_ajax_process_voice_input');
 add_action('wp_ajax_gi_process_voice_input', 'gi_ajax_process_voice_input');
 add_action('wp_ajax_nopriv_gi_process_voice_input', 'gi_ajax_process_voice_input');
 
@@ -3009,3 +3946,292 @@ function gi_ajax_voice_history() {
 }
 add_action('wp_ajax_gi_voice_history', 'gi_ajax_voice_history');
 add_action('wp_ajax_nopriv_gi_voice_history', 'gi_ajax_voice_history');
+
+/**
+ * 検索結果に基づいたAI提案生成
+ */
+function gi_generate_search_suggestions($query, $grants) {
+    if (empty($grants)) {
+        return [
+            'より具体的な業種や目的を教えてください',
+            '似たようなキーワードで再検索してみませんか？',
+            '別のカテゴリーで検索してみましょう'
+        ];
+    }
+    
+    $suggestions = [
+        'この中で一番おすすめはどれですか？',
+        '申請の難易度を教えてください',
+        '必要な書類は何ですか？',
+        '採択率を高めるコツはありますか？'
+    ];
+    
+    // 検索結果に基づいてカスタマイズ
+    if (count($grants) > 1) {
+        $suggestions[] = "この{count($grants)}件の中で最も適しているのはどれですか？";
+    }
+    
+    // 締切が近いものがあるかチェック
+    $urgent_count = 0;
+    foreach ($grants as $grant) {
+        if (!empty($grant['deadline_raw'])) {
+            $deadline = strtotime($grant['deadline_raw']);
+            $days_left = ($deadline - time()) / (24 * 60 * 60);
+            if ($days_left > 0 && $days_left <= 30) {
+                $urgent_count++;
+            }
+        }
+    }
+    
+    if ($urgent_count > 0) {
+        $suggestions[] = '締切が近いものがありますが、優先すべきですか？';
+    }
+    
+    return array_slice($suggestions, 0, 4);
+}
+
+/**
+ * 特定の助成金についてのAIアシスタント機能
+ */
+function gi_ajax_grant_assistant() {
+    // nonceチェック
+    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'gi_ai_search_nonce')) {
+        wp_send_json_error(['message' => 'セキュリティチェックに失敗しました']);
+        return;
+    }
+    
+    $grant_id = intval($_POST['grant_id'] ?? 0);
+    $question_type = sanitize_text_field($_POST['question_type'] ?? '');
+    $custom_question = sanitize_textarea_field($_POST['custom_question'] ?? '');
+    
+    if (!$grant_id || !get_post($grant_id)) {
+        wp_send_json_error(['message' => '助成金IDが無効です']);
+        return;
+    }
+    
+    $grant = get_post($grant_id);
+    $grant_data = [
+        'title' => $grant->post_title,
+        'content' => $grant->post_content,
+        'amount' => get_post_meta($grant_id, 'max_amount', true),
+        'deadline' => get_post_meta($grant_id, 'application_deadline', true),
+        'organization' => get_post_meta($grant_id, 'organization', true),
+        'requirements' => get_post_meta($grant_id, 'eligibility_requirements', true),
+        'documents' => get_post_meta($grant_id, 'required_documents', true),
+        'success_rate' => get_post_meta($grant_id, 'success_rate', true)
+    ];
+    
+    $response = '';
+    $suggestions = [];
+    
+    switch ($question_type) {
+        case 'overview':
+            $response = gi_generate_grant_overview($grant_data);
+            $suggestions = [
+                '申請条件を詳しく教えて',
+                '必要な書類は？',
+                '申請のコツは？'
+            ];
+            break;
+            
+        case 'requirements':
+            $response = gi_generate_requirements_info($grant_data);
+            $suggestions = [
+                '申請手続きの流れは？',
+                '審査基準は？',
+                '他に必要な準備は？'
+            ];
+            break;
+            
+        case 'documents':
+            $response = gi_generate_documents_info($grant_data);
+            $suggestions = [
+                '書類作成のコツは？',
+                '提出方法は？',
+                '注意点は？'
+            ];
+            break;
+            
+        case 'tips':
+            $response = gi_generate_application_tips($grant_data);
+            $suggestions = [
+                '採択されやすいポイントは？',
+                'よくある失敗例は？',
+                '他の助成金との併用は可能？'
+            ];
+            break;
+            
+        case 'custom':
+            if (!empty($custom_question)) {
+                $response = gi_generate_custom_grant_answer($grant_data, $custom_question);
+                $suggestions = [
+                    '他に知りたいことはありますか？',
+                    '申請に関する質問はありますか？'
+                ];
+            } else {
+                wp_send_json_error(['message' => '質問内容を入力してください']);
+                return;
+            }
+            break;
+            
+        default:
+            wp_send_json_error(['message' => '無効な質問タイプです']);
+            return;
+    }
+    
+    wp_send_json_success([
+        'response' => $response,
+        'suggestions' => $suggestions,
+        'grant_title' => $grant_data['title']
+    ]);
+}
+add_action('wp_ajax_gi_grant_assistant', 'gi_ajax_grant_assistant');
+add_action('wp_ajax_nopriv_gi_grant_assistant', 'gi_ajax_grant_assistant');
+
+/**
+ * 助成金概要生成
+ */
+function gi_generate_grant_overview($grant_data) {
+    $response = "「{$grant_data['title']}」の概要をご紹介します。\n\n";
+    
+    if (!empty($grant_data['amount'])) {
+        $response .= "💰 **助成金額**: {$grant_data['amount']}\n";
+    }
+    
+    if (!empty($grant_data['deadline'])) {
+        $response .= "📅 **申請締切**: {$grant_data['deadline']}\n";
+    }
+    
+    if (!empty($grant_data['organization'])) {
+        $response .= "🏢 **実施組織**: {$grant_data['organization']}\n";
+    }
+    
+    if (!empty($grant_data['success_rate'])) {
+        $response .= "🎯 **採択率**: {$grant_data['success_rate']}%\n";
+    }
+    
+    $response .= "\n" . wp_trim_words($grant_data['content'], 100, '...');
+    
+    $response .= "\n\nこの助成金について、他に知りたいことはありますか？";
+    
+    return $response;
+}
+
+/**
+ * 申請条件情報生成
+ */
+function gi_generate_requirements_info($grant_data) {
+    $response = "「{$grant_data['title']}」の申請条件をご説明します。\n\n";
+    
+    if (!empty($grant_data['requirements'])) {
+        $response .= "📝 **主な申請条件**:\n{$grant_data['requirements']}\n\n";
+    } else {
+        $response .= "📝 **一般的な申請条件**:\n";
+        $response .= "- 中小企業等の事業者であること\n";
+        $response .= "- 新しい取り組みや改善を実施すること\n";
+        $response .= "- 事業計画書を提出すること\n\n";
+    }
+    
+    $response .= "⚠️ **注意事項**: 詳細な条件は公募要領を必ずご確認ください。";
+    
+    return $response;
+}
+
+/**
+ * 必要書類情報生成
+ */
+function gi_generate_documents_info($grant_data) {
+    $response = "「{$grant_data['title']}」の必要書類をご案内します。\n\n";
+    
+    if (!empty($grant_data['documents'])) {
+        $response .= "📄 **必要書類**:\n{$grant_data['documents']}\n\n";
+    } else {
+        $response .= "📄 **一般的な必要書類**:\n";
+        $response .= "- 交付申請書\n";
+        $response .= "- 事業計画書\n";
+        $response .= "- 経費明細書\n";
+        $response .= "- 会社概要書\n";
+        $response .= "- 登記事項証明書\n\n";
+    }
+    
+    $response .= "📝 **作成のポイント**:\n";
+    $response .= "- 具体的で明確な数値目標を記載\n";
+    $response .= "- 投資対効果を明確に示す\n";
+    $response .= "- 実現可能なスケジュールを作成";
+    
+    return $response;
+}
+
+/**
+ * 申請のコツ生成
+ */
+function gi_generate_application_tips($grant_data) {
+    $response = "「{$grant_data['title']}」の申請を成功させるコツをご紹介します。\n\n";
+    
+    $response .= "🎯 **採択のポイント**:\n";
+    $response .= "1. **明確な目的設定**: 何を、なぜ、どうやって実現するかを明確に\n";
+    $response .= "2. **具体的な数値**: 売上向上、コスト削減などを数値で表現\n";
+    $response .= "3. **実現可能性**: 現実的で達成可能な計画を作成\n";
+    $response .= "4. **社会的インパクト**: 地域や社会への貢献をアピール\n\n";
+    
+    if (!empty($grant_data['success_rate'])) {
+        $rate = intval($grant_data['success_rate']);
+        if ($rate < 30) {
+            $response .= "🚨 **特別注意**: この助成金の採択率は{$rate}%と低めです。特に丁寧な準備が必要です。";
+        } else {
+            $response .= "✅ **Good News**: 採択率{$rate}%で、比較的申請しやすい助成金です。";
+        }
+    }
+    
+    return $response;
+}
+
+/**
+ * カスタム質問への回答生成
+ */
+function gi_generate_custom_grant_answer($grant_data, $question) {
+    // 質問のカテゴリ分け
+    $question_lower = mb_strtolower($question);
+    
+    $response = "「{$grant_data['title']}」についてのご質問にお答えします。\n\n";
+    
+    if (mb_strpos($question_lower, '締切') !== false) {
+        $response .= "📅 **申請締切について**:\n";
+        if (!empty($grant_data['deadline'])) {
+            $response .= "申請締切は{$grant_data['deadline']}です。\n";
+            $deadline_ts = strtotime($grant_data['deadline']);
+            if ($deadline_ts) {
+                $days_left = ceil(($deadline_ts - time()) / (24 * 60 * 60));
+                if ($days_left > 0) {
+                    $response .= "あと{$days_left}日ですので、早めの準備をお勧めします。";
+                } else {
+                    $response .= "申請期限が過ぎている可能性があります。最新情報を確認してください。";
+                }
+            }
+        } else {
+            $response .= "申請締切の詳細は公式情報をご確認ください。";
+        }
+    } elseif (mb_strpos($question_lower, '金額') !== false || mb_strpos($question_lower, 'いくら') !== false) {
+        $response .= "💰 **助成金額について**:\n";
+        if (!empty($grant_data['amount'])) {
+            $response .= "最大助成金額は{$grant_data['amount']}です。\n";
+            $response .= "実際の支給額は事業内容や申請条件によって決定されます。";
+        } else {
+            $response .= "助成金額の詳細は公募要領をご確認ください。";
+        }
+    } elseif (mb_strpos($question_lower, '書類') !== false || mb_strpos($question_lower, '提出') !== false) {
+        $response .= gi_generate_documents_info($grant_data);
+    } elseif (mb_strpos($question_lower, '条件') !== false || mb_strpos($question_lower, '対象') !== false) {
+        $response .= gi_generate_requirements_info($grant_data);
+    } else {
+        $response .= "ご質問いただいた「{$question}」についてですが、\n\n";
+        $response .= "より詳細な情報は以下の方法でご確認いただけます。\n";
+        $response .= "- 公式ウェブサイトや公募要領を確認\n";
+        if (!empty($grant_data['organization'])) {
+            $response .= "- {$grant_data['organization']}に直接お問い合わせ\n";
+        }
+        $response .= "- 専門家やコンサルタントに相談";
+    }
+    
+    return $response;
+}
