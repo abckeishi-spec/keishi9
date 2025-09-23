@@ -493,40 +493,7 @@ function gi_remove_from_favorites($post_id) {
     return false;
 }
 
-/**
- * 検索履歴の管理
- */
-function gi_save_search_history($query, $filters = [], $results_count = 0) {
-    $user_id = get_current_user_id();
-    if (!$user_id) return;
-    
-    $history = get_user_meta($user_id, 'gi_search_history', true) ?: [];
-    
-    // 新しい検索を追加
-    array_unshift($history, [
-        'query' => sanitize_text_field($query),
-        'filters' => $filters,
-        'results_count' => intval($results_count),
-        'timestamp' => current_time('timestamp')
-    ]);
-    
-    // 最新の20件のみ保持
-    $history = array_slice($history, 0, 20);
-    
-    update_user_meta($user_id, 'gi_search_history', $history);
-}
-
-/**
- * 検索履歴取得
- */
-function gi_get_search_history($limit = 10) {
-    $user_id = get_current_user_id();
-    if (!$user_id) return [];
-    
-    $history = get_user_meta($user_id, 'gi_search_history', true) ?: [];
-    
-    return array_slice($history, 0, $limit);
-}
+// 検索履歴関数は inc/ai-functions.php に移動
 
 /**
  * データの整合性チェック
@@ -602,33 +569,7 @@ function gi_get_grant_statistics() {
 /**
  * 人気の検索キーワード取得
  */
-function gi_get_popular_search_terms($limit = 10) {
-    $cache_key = "gi_popular_searches_{$limit}";
-    $terms = get_transient($cache_key);
-    
-    if (false === $terms) {
-        // 基本的な人気キーワードを返す（実際の実装では検索ログから取得）
-        $terms = [
-            'IT補助金',
-            'ものづくり補助金', 
-            '小規模事業者持続化補助金',
-            '創業支援',
-            'DX推進',
-            '設備投資',
-            '人材育成',
-            '省エネ',
-            '研究開発',
-            'デジタル化'
-        ];
-        
-        $terms = array_slice($terms, 0, $limit);
-        
-        // 6時間キャッシュ
-        set_transient($cache_key, $terms, 21600);
-    }
-    
-    return $terms;
-}
+// gi_get_popular_search_terms関数は inc/ai-functions.php に移動
 
 /**
  * キャッシュクリア関数

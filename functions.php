@@ -31,6 +31,7 @@ $required_files = array(
     'core-setup.php',        // テーマ設定、投稿タイプ、タクソノミー統合
     'display-functions.php', // カードレンダリング、テンプレート、モバイル最適化統合
     'data-functions.php',    // ヘルパー関数、パフォーマンス最適化統合
+    'ai-functions.php',      // AI機能・検索履歴統合
     '3-ajax-functions.php',  // AJAX処理（既存のまま）
     '6-admin-functions.php', // 管理画面機能（既存のまま）
     'acf-setup.php'          // ACF設定とフィールド定義統合
@@ -365,27 +366,7 @@ add_action('init', function() {
     }
 });
 
-/**
- * 検索履歴の保存
- */
-function gi_save_search_history($session_id, $query, $filter, $results_count) {
-    global $wpdb;
-    
-    $table = $wpdb->prefix . 'gi_search_history';
-    $wpdb->insert(
-        $table,
-        [
-            'session_id' => $session_id,
-            'user_id' => get_current_user_id() ?: null,
-            'search_query' => $query,
-            'search_filter' => $filter,
-            'results_count' => $results_count
-        ],
-        ['%s', '%d', '%s', '%s', '%d']
-    );
-    
-    return $wpdb->insert_id;
-}
+// 検索履歴関数は inc/ai-functions.php に移動
 
 
 
