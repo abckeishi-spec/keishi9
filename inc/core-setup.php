@@ -348,6 +348,43 @@ function gi_register_taxonomies() {
 add_action('init', 'gi_register_taxonomies');
 
 /**
+ * パーマリンク設定の強制フラッシュ
+ */
+function gi_flush_rewrite_rules() {
+    // カスタム投稿タイプとタクソノミーが登録された後にパーマリンクを更新
+    flush_rewrite_rules();
+}
+// テーマが有効化された時のみ実行
+add_action('after_switch_theme', 'gi_flush_rewrite_rules');
+
+/**
+ * 投稿タイプとタクソノミーのパーマリンク修正
+ */
+function gi_fix_grant_permalinks() {
+    global $wp_rewrite;
+    
+    // カスタム投稿タイプのrewrite ruleを追加
+    add_rewrite_rule(
+        'grants/?$', 
+        'index.php?post_type=grant', 
+        'top'
+    );
+    
+    add_rewrite_rule(
+        'grants/page/?([0-9]{1,})/?$', 
+        'index.php?post_type=grant&paged=$matches[1]', 
+        'top'
+    );
+    
+    add_rewrite_rule(
+        'grants/([^/]+)/?$', 
+        'index.php?post_type=grant&name=$matches[1]', 
+        'top'
+    );
+}
+add_action('init', 'gi_fix_grant_permalinks', 11);
+
+/**
  * =============================================================================
  * 3. 都道府県データ初期化
  * =============================================================================
@@ -591,3 +628,57 @@ function gi_admin_styles() {
     </style>';
 }
 add_action('admin_head', 'gi_admin_styles');
+
+/**
+ * デバッグ: テンプレート階層の表示（開発時のみ）
+ */
+function gi_debug_template_hierarchy($template) {
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        $queried_object = get_queried_object();
+        
+        error_log('=== Template Debug ===');
+        error_log('Current template: ' . $template);
+        error_log('Is archive: ' . (is_archive() ? 'YES' : 'NO'));
+        error_log('Is post type archive: ' . (is_post_type_archive() ? 'YES' : 'NO'));
+        error_log('Is post type archive grant: ' . (is_post_type_archive('grant') ? 'YES' : 'NO'));
+        error_log('Is singular: ' . (is_singular() ? 'YES' : 'NO'));
+        error_log('Is singular grant: ' . (is_singular('grant') ? 'YES' : 'NO'));
+        error_log('Current post type: ' . get_post_type());
+        
+        if ($queried_object) {
+            error_log('Queried object: ' . json_encode([
+                'ID' => $queried_object->ID ?? 'N/A',
+                'post_type' => $queried_object->post_type ?? 'N/A',
+                'name' => $queried_object->name ?? 'N/A'
+            ]));
+        }
+        
+        error_log('Available templates: ' . json_encode([
+            'archive-grant.php' => file_exists(get_template_directory() . '/archive-grant.php'),
+            'single-grant.php' => file_exists(get_template_directory() . '/single-grant.php'),
+            'archive.php' => file_exists(get_template_directory() . '/archive.php'),
+            'index.php' => file_exists(get_template_directory() . '/index.php')
+        ]));
+        error_log('======================');
+    }
+    
+    return $template;
+}
+add_filter('template_include', 'gi_debug_template_hierarchy');
+
+/**
+ * 助成金URLの確実な処理
+ */
+function gi_ensure_grant_queries($query) {
+    if (!is_admin() && $query->is_main_query()) {
+        // /grants/ のアクセスを確実に助成金アーカイブとして処理
+        if ($query->get('pagename') === 'grants' || 
+            (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/grants') === 0)) {
+            $query->set('post_type', 'grant');
+            $query->set('pagename', '');
+            $query->is_page = false;
+            $query->is_post_type_archive = true;
+        }
+    }
+}
+add_action('pre_get_posts', 'gi_ensure_grant_queries', 1);

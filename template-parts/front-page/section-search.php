@@ -1651,6 +1651,323 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
         justify-content: center;
     }
 }
+
+/* Grant Assistant Modal Styles */
+.grant-assistant-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.grant-assistant-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.grant-assistant-modal .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.grant-assistant-modal .modal-content {
+    position: relative;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+}
+
+.grant-assistant-modal .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.grant-assistant-modal .assistant-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.grant-assistant-modal .assistant-avatar {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.grant-assistant-modal .avatar-ring {
+    position: absolute;
+    inset: -3px;
+    border: 2px solid #dbeafe;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.grant-assistant-modal .assistant-details h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.grant-assistant-modal .grant-title {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.grant-assistant-modal .modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #f3f4f6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.grant-assistant-modal .modal-close:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.grant-assistant-modal .modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.grant-assistant-modal .assistant-chat {
+    flex: 1;
+    padding: 20px 24px;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.grant-assistant-modal .assistant-message {
+    margin-bottom: 16px;
+    animation: messageSlideIn 0.3s ease;
+}
+
+.grant-assistant-modal .message-bubble {
+    padding: 12px 16px;
+    border-radius: 16px;
+    max-width: 85%;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.grant-assistant-modal .message-bubble.user {
+    background: #3b82f6;
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+}
+
+.grant-assistant-modal .message-bubble.ai {
+    background: #f3f4f6;
+    color: #374151;
+    border-bottom-left-radius: 4px;
+}
+
+.grant-assistant-modal .typing-dots {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+}
+
+.grant-assistant-modal .typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #9ca3af;
+    animation: typingDots 1.4s ease-in-out infinite;
+}
+
+.grant-assistant-modal .typing-dots span:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.grant-assistant-modal .typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.grant-assistant-modal .typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+.grant-assistant-modal .suggestion-buttons {
+    padding: 0 24px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.grant-assistant-modal .suggestion-btn {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.grant-assistant-modal .suggestion-btn:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.grant-assistant-modal .chat-input-area {
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+    align-items: end;
+    background: #fafafa;
+}
+
+.grant-assistant-modal .grant-chat-input {
+    flex: 1;
+    min-height: 40px;
+    max-height: 120px;
+    padding: 10px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    font-size: 14px;
+    resize: none;
+    font-family: inherit;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.grant-assistant-modal .grant-chat-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.grant-assistant-modal .send-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.grant-assistant-modal .send-btn:hover {
+    background: #2563eb;
+    transform: scale(1.05);
+}
+
+/* Modal Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes messageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes typingDots {
+    0%, 60%, 100% {
+        transform: scale(1);
+        opacity: 0.4;
+    }
+    30% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .grant-assistant-modal .modal-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .grant-assistant-modal .assistant-chat {
+        max-height: 250px;
+    }
+    
+    .grant-assistant-modal .suggestion-buttons {
+        justify-content: center;
+    }
+}
 </style>
 
 <script>
@@ -1733,6 +2050,27 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                 quickQuestions: document.querySelectorAll('.quick-q'),
                 voiceBtn: document.querySelector('.voice-btn'),
             };
+            
+            // Debug: Log element status
+            console.log('Elements cached:', {
+                searchInput: !!this.elements.searchInput,
+                chatMessages: !!this.elements.chatMessages,
+                resultsContainer: !!this.elements.resultsContainer,
+                searchBtn: !!this.elements.searchBtn
+            });
+            
+            // Validate critical elements
+            const criticalElements = ['searchInput', 'chatMessages', 'resultsContainer'];
+            const missingElements = criticalElements.filter(key => !this.elements[key]);
+            
+            if (missingElements.length > 0) {
+                console.warn('Missing critical elements:', missingElements);
+                // Retry after a short delay
+                setTimeout(() => {
+                    console.log('Retrying element cache...');
+                    this.cacheElements();
+                }, 1000);
+            }
         }
 
         bindEvents() {
@@ -1985,7 +2323,7 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                 if (value === undefined || value === null || value === 'undefined') {
                     return defaultValue;
                 }
-                return String(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                return String(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/`/g, '&#96;');
             };
             
             const grantId = safeGet(grant.id, '0');
@@ -1997,47 +2335,54 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             const successRate = grant.success_rate && grant.success_rate !== '' ? parseInt(grant.success_rate) : null;
             const isFeatured = grant.featured === true || grant.featured === '1';
             
-            return `
-                <div class="grant-card" data-id="${grantId}" style="animation-delay: ${Math.random() * 0.2}s">
+            // UUID for unique element IDs
+            const cardId = 'grant-card-' + grantId + '-' + Math.random().toString(36).substr(2, 9);
+            
+            const cardHtml = `
+                <div class="grant-card" id="${cardId}" data-id="${grantId}" data-grant-title="${grantTitle}" style="animation-delay: ${Math.random() * 0.2}s">
                     ${isFeatured ? '<div class="card-badge">注目</div>' : ''}
-                    <h4 class="card-title">${grantTitle}</h4>
-                    <div class="card-meta">
-                        <span class="meta-item">
-                            <span class="meta-label">最大</span>
-                            <span class="meta-value">${grantAmount}</span>
-                        </span>
-                        <span class="meta-item">
-                            <span class="meta-label">締切</span>
-                            <span class="meta-value">${grantDeadline}</span>
-                        </span>
-                    </div>
-                    <p class="card-org">${grantOrg}</p>
-                    ${successRate && successRate > 0 ? `
-                        <div class="card-rate">
-                            <div class="rate-bar">
-                                <div class="rate-fill" style="width: ${successRate}%"></div>
-                            </div>
-                            <span class="rate-text">採択率 ${successRate}%</span>
+                    <div class="card-content">
+                        <h4 class="card-title">${grantTitle}</h4>
+                        <div class="card-meta">
+                            <span class="meta-item">
+                                <span class="meta-label">最大</span>
+                                <span class="meta-value">${grantAmount}</span>
+                            </span>
+                            <span class="meta-item">
+                                <span class="meta-label">締切</span>
+                                <span class="meta-value">${grantDeadline}</span>
+                            </span>
                         </div>
-                    ` : ''}
-                    
-                    <!-- Enhanced AI Assistant Integration -->
-                    <div class="card-actions">
-                        <button class="ai-assist-btn" data-grant-id="${grantId}" data-grant-title="${grantTitle}" onclick="window.aiSearchController.showGrantAssistant('${grantId}', '${grantTitle}')">
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                <path d="M7 1L9 5L13 5L10 8L11 12L7 10L3 12L4 8L1 5L5 5L7 1Z" stroke="currentColor" stroke-width="1.5"/>
-                            </svg>
-                            AI質問
-                        </button>
-                        <a href="${grantPermalink}" class="card-link">
-                            詳細を見る
-                            <svg width="12" height="12" viewBox="0 0 12 12">
-                                <path d="M2 6h8m0 0L7 3m3 3L7 9"/>
-                            </svg>
-                        </a>
+                        <p class="card-org">${grantOrg}</p>
+                        ${successRate && successRate > 0 ? `
+                            <div class="card-rate">
+                                <div class="rate-bar">
+                                    <div class="rate-fill" style="width: ${successRate}%"></div>
+                                </div>
+                                <span class="rate-text">採択率 ${successRate}%</span>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Enhanced AI Assistant Integration -->
+                        <div class="card-actions">
+                            <button type="button" class="ai-assist-btn" data-grant-id="${grantId}" data-grant-title="${grantTitle}">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                    <path d="M7 1L9 5L13 5L10 8L11 12L7 10L3 12L4 8L1 5L5 5L7 1Z" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                                AI質問
+                            </button>
+                            <a href="${grantPermalink}" class="card-link" target="_blank" rel="noopener noreferrer">
+                                詳細を見る
+                                <svg width="12" height="12" viewBox="0 0 12 12">
+                                    <path d="M2 6h8m0 0L7 3m3 3L7 9" stroke="currentColor" stroke-width="2" fill="none"/>
+                                </svg>
+                            </a>
+                        </div>
                     </div>
                 </div>
             `;
+            
+            return cardHtml;
         }
 
         updateResultsCount(count) {
@@ -2128,12 +2473,28 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
         }
 
         addChatMessage(text, type) {
+            if (!this.elements.chatMessages) {
+                console.error('Chat messages container not found');
+                return;
+            }
+            
             const messageDiv = document.createElement('div');
             messageDiv.className = `message message-${type}`;
-            messageDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
+            messageDiv.innerHTML = `<div class="message-bubble">${text.replace(/\n/g, '<br>')}</div>`;
+            messageDiv.style.opacity = '0';
+            messageDiv.style.transform = 'translateY(10px)';
             
             this.elements.chatMessages.appendChild(messageDiv);
+            
+            // Animate message in
+            requestAnimationFrame(() => {
+                messageDiv.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                messageDiv.style.opacity = '1';
+                messageDiv.style.transform = 'translateY(0)';
+            });
+            
             this.scrollChatToBottom();
+            console.log(`Chat message added: ${type} - ${text.substring(0, 50)}...`);
         }
 
         typeMessage(text) {
@@ -2518,15 +2879,29 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             });
         }
 
+        // Enhanced sendGrantQuestion method - unified modal version
         async sendGrantQuestion(grantId, question, questionType) {
             if (!question.trim()) return;
             
-            const chatContainer = document.getElementById(`assistant-chat-${grantId}`);
-            const suggestionsContainer = document.getElementById(`suggestions-${grantId}`);
+            console.log('Sending grant question:', {grantId, question, questionType});
             
-            // Add user message
+            const modal = document.querySelector('.grant-assistant-modal');
+            if (!modal) {
+                console.error('Grant assistant modal not found');
+                return;
+            }
+
+            const chatContainer = modal.querySelector('.assistant-chat');
+            const suggestionsContainer = modal.querySelector('.suggestion-buttons');
+
+            if (!chatContainer) {
+                console.error('Chat container not found in modal');
+                return;
+            }
+
+            // Add user question
             this.addAssistantMessage(chatContainer, question, 'user');
-            
+
             // Show typing indicator
             const typingIndicator = this.addTypingIndicator(chatContainer);
             
@@ -2541,13 +2916,34 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                 }
                 formData.append('session_id', CONFIG.SESSION_ID);
 
+                console.log('Sending grant assistant request:', {
+                    action: 'gi_grant_assistant',
+                    grantId,
+                    questionType,
+                    question: questionType === 'custom' ? question : questionType
+                });
+
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
                     body: formData,
                     credentials: 'same-origin'
                 });
 
-                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const text = await response.text();
+                let data;
+                
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Invalid JSON response:', text);
+                    throw new Error('Invalid response format');
+                }
+                
+                console.log('Grant assistant response:', data);
                 
                 // Remove typing indicator
                 if (typingIndicator) {
@@ -2561,21 +2957,24 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                     // Update suggestions
                     if (data.data.suggestions && suggestionsContainer) {
                         suggestionsContainer.innerHTML = data.data.suggestions.map(suggestion => `
-                            <button class="suggestion-btn small" data-grant-id="${grantId}" data-type="custom">
+                            <button class="suggestion-btn" data-grant-id="${grantId}" data-type="custom">
                                 ${suggestion}
                             </button>
                         `).join('');
                         
                         // Re-bind suggestion events
                         suggestionsContainer.querySelectorAll('.suggestion-btn').forEach(btn => {
-                            btn.addEventListener('click', () => {
+                            btn.addEventListener('click', (e) => {
+                                e.preventDefault();
                                 const questionText = btn.textContent;
                                 this.sendGrantQuestion(grantId, questionText, 'custom');
                             });
                         });
                     }
                 } else {
-                    this.addAssistantMessage(chatContainer, '申し訳ございません。エラーが発生しました。', 'ai');
+                    const errorMsg = data.data?.message || data.data || '申し訳ございません。エラーが発生しました。';
+                    console.error('Grant assistant failed:', errorMsg);
+                    this.addAssistantMessage(chatContainer, errorMsg, 'ai');
                 }
                 
             } catch (error) {
@@ -2583,7 +2982,7 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                 if (typingIndicator) {
                     typingIndicator.remove();
                 }
-                this.addAssistantMessage(chatContainer, '通信エラーが発生しました。', 'ai');
+                this.addAssistantMessage(chatContainer, '通信エラーが発生しました: ' + error.message, 'ai');
             }
         }
 
@@ -2621,16 +3020,73 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
 
         // Enhanced Grant Assistant Methods
         bindGrantCardEvents() {
-            // Bind AI assistant buttons
+            console.log('Binding grant card events...');
+            
+            // Remove existing event listeners to prevent duplication
             document.querySelectorAll('.ai-assist-btn').forEach(btn => {
+                const clone = btn.cloneNode(true);
+                btn.parentNode.replaceChild(clone, btn);
+            });
+            
+            // Bind AI assistant buttons with multiple fallback methods
+            const aiButtons = document.querySelectorAll('.ai-assist-btn');
+            console.log(`Found ${aiButtons.length} AI assist buttons to bind`);
+            
+            aiButtons.forEach((btn, index) => {
+                console.log(`Binding AI button ${index}:`, btn.dataset);
+                
+                // Method 1: Standard event listener
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     const grantId = btn.dataset.grantId;
                     const grantTitle = btn.dataset.grantTitle;
+                    console.log(`AI button clicked: ID=${grantId}, Title=${grantTitle}`);
+                    
+                    if (!grantId || !grantTitle) {
+                        console.error('Missing grant data:', {grantId, grantTitle});
+                        return;
+                    }
+                    
                     this.showGrantAssistant(grantId, grantTitle);
                 });
+                
+                // Method 2: Direct onclick fallback
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const grantId = btn.dataset.grantId;
+                    const grantTitle = btn.dataset.grantTitle;
+                    console.log(`AI button onclick: ID=${grantId}, Title=${grantTitle}`);
+                    this.showGrantAssistant(grantId, grantTitle);
+                };
             });
+            
+            // Also bind using event delegation for dynamically added cards
+            const resultsContainer = this.elements.resultsContainer;
+            if (resultsContainer) {
+                // Remove existing delegation listener
+                resultsContainer.removeEventListener('click', this.handleCardClick);
+                
+                // Add new delegation listener
+                this.handleCardClick = (e) => {
+                    if (e.target.closest('.ai-assist-btn')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const btn = e.target.closest('.ai-assist-btn');
+                        const grantId = btn.dataset.grantId;
+                        const grantTitle = btn.dataset.grantTitle;
+                        
+                        console.log(`Delegated AI button click: ID=${grantId}, Title=${grantTitle}`);
+                        this.showGrantAssistant(grantId, grantTitle);
+                    }
+                };
+                
+                resultsContainer.addEventListener('click', this.handleCardClick);
+            }
+            
+            console.log('Grant card events bound successfully');
         }
 
         showGrantAssistant(grantId, grantTitle) {
@@ -2816,92 +3272,7 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             });
         }
 
-        async sendGrantQuestion(grantId, question, questionType) {
-            const modal = document.querySelector('.grant-assistant-modal');
-            if (!modal) return;
-
-            const chatContainer = modal.querySelector('.assistant-chat');
-            const suggestionsContainer = modal.querySelector('.suggestion-buttons');
-
-            if (!chatContainer) return;
-
-            // Add user question
-            this.addAssistantMessage(chatContainer, question, 'user');
-
-            // Show typing indicator
-            const typingIndicator = this.addTypingIndicator(chatContainer);
-            
-            try {
-                const formData = new FormData();
-                formData.append('action', 'gi_grant_assistant');
-                formData.append('nonce', CONFIG.NONCE);
-                formData.append('grant_id', grantId);
-                formData.append('question_type', questionType);
-                if (questionType === 'custom') {
-                    formData.append('custom_question', question);
-                }
-                formData.append('session_id', CONFIG.SESSION_ID);
-
-                const response = await fetch(CONFIG.API_URL, {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'same-origin'
-                });
-
-                const data = await response.json();
-                
-                // Remove typing indicator
-                if (typingIndicator) {
-                    typingIndicator.remove();
-                }
-
-                if (data.success) {
-                    // Add AI response
-                    this.addAssistantMessage(chatContainer, data.data.response, 'ai');
-                    
-                    // Update suggestions
-                    if (data.data.suggestions && suggestionsContainer) {
-                        suggestionsContainer.innerHTML = data.data.suggestions.map(suggestion => `
-                            <button class="suggestion-btn small" data-grant-id="${grantId}" data-type="custom">
-                                ${suggestion}
-                            </button>
-                        `).join('');
-                        
-                        // Re-bind suggestion events
-                        suggestionsContainer.querySelectorAll('.suggestion-btn').forEach(btn => {
-                            btn.addEventListener('click', () => {
-                                const questionText = btn.textContent;
-                                this.sendGrantQuestion(grantId, questionText, 'custom');
-                            });
-                        });
-                    }
-                } else {
-                    this.addAssistantMessage(chatContainer, '申し訳ございません。エラーが発生しました。', 'ai');
-                }
-                
-            } catch (error) {
-                console.error('Grant assistant error:', error);
-                if (typingIndicator) {
-                    typingIndicator.remove();
-                }
-                this.addAssistantMessage(chatContainer, '通信エラーが発生しました。', 'ai');
-            }
-        }
-
-        addAssistantMessage(container, text, type) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `assistant-message ${type}`;
-            messageDiv.innerHTML = `
-                <div class="message-bubble ${type}">
-                    ${text.replace(/\n/g, '<br>')}
-                </div>
-            `;
-            
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
-            
-            return messageDiv;
-        }
+        // Duplicate method removed - using unified version above
 
         addTypingIndicator(container) {
             const indicator = document.createElement('div');
