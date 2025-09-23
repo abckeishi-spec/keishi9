@@ -121,9 +121,12 @@ function gi_theme_cleanup() {
 add_action('switch_theme', 'gi_theme_cleanup');
 
 /**
- * AI強化機能のスクリプトとスタイル登録
+ * AI強化機能のスクリプトとスタイル登録 - 一時的に無効化
  */
 function gi_enqueue_ai_enhanced_assets() {
+    // AI機能を一時的に無効化 - デバッグ中
+    return;
+    
     // 強化版AIアシスタントJS
     wp_enqueue_script(
         'gi-ai-assistant-enhanced',

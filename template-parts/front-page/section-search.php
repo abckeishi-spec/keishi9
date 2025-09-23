@@ -16,8 +16,8 @@ $session_id = 'gi_session_' . wp_generate_uuid4();
 $nonce = wp_create_nonce('gi_ai_search_nonce');
 ?>
 
-<!-- AI Grant Search Section - Monochrome Professional Edition -->
-<section id="ai-search-section" class="monochrome-ai-search" data-session-id="<?php echo esc_attr($session_id); ?>">
+<!-- AI Grant Search Section - Monochrome Professional Edition - 一時的に無効化 -->
+<section id="ai-search-section" class="monochrome-ai-search disabled-for-debugging" data-session-id="<?php echo esc_attr($session_id); ?>" style="display: none;"><?php /* AI機能を一時的に無効化 - デバッグ中 */ ?>
     <!-- 背景エフェクト（カテゴリーセクションと同じ） -->
     <div class="background-effects">
         <div class="grid-pattern"></div>
@@ -244,7 +244,7 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
 
         </div>
     </div>
-</section>
+</section> <!-- /AI Grant Search Section - 一時的に無効化中 -->
 
 <style>
 /* Monochrome AI Search Section Styles */
