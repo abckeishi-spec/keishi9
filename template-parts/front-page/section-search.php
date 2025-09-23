@@ -1325,6 +1325,16 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
         session: CONFIG.SESSION_ID
     });
 
+    // Validate configuration
+    if (!CONFIG.API_URL) {
+        console.error('ERROR: AJAX URL is not set. WordPress admin_url may not be available.');
+        return;
+    }
+    if (!CONFIG.NONCE) {
+        console.error('ERROR: Nonce is not set. WordPress nonce generation may have failed.');
+        return;
+    }
+
     // AI Search Controller
     class AISearchController {
         constructor() {
@@ -1385,6 +1395,15 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
                 quickQuestions: document.querySelectorAll('.quick-q'),
                 voiceBtn: document.querySelector('.voice-btn'),
             };
+            
+            // Debug: Check which elements are missing
+            Object.entries(this.elements).forEach(([key, element]) => {
+                if (!element || (element.length !== undefined && element.length === 0)) {
+                    console.warn(`AI Element missing or empty: ${key}`);
+                } else {
+                    console.log(`AI Element found: ${key}`);
+                }
+            });
         }
 
         bindEvents() {
@@ -1998,12 +2017,20 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
     }
 
     // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
+    function initializeAI() {
+        try {
+            console.log('Initializing AI Search Controller...');
             new AISearchController();
-        });
+            console.log('AI Search Controller initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize AI Search Controller:', error);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeAI);
     } else {
-        new AISearchController();
+        initializeAI();
     }
 
 })();
