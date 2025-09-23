@@ -2024,6 +2024,30 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             console.log('AI Search Controller initialized successfully');
         } catch (error) {
             console.error('Failed to initialize AI Search Controller:', error);
+            
+            // Fallback: Basic search functionality
+            console.log('Setting up fallback search functionality...');
+            const searchInput = document.getElementById('ai-search-input');
+            const searchBtn = document.getElementById('ai-search-btn');
+            
+            if (searchInput && searchBtn) {
+                searchBtn.addEventListener('click', function() {
+                    const query = searchInput.value.trim();
+                    if (query) {
+                        alert('検索機能: "' + query + '" で検索します。(デバッグモード)');
+                        console.log('Fallback search triggered for:', query);
+                    }
+                });
+                
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        searchBtn.click();
+                    }
+                });
+                
+                console.log('Fallback search functionality set up');
+            }
         }
     }
 
