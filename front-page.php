@@ -84,90 +84,12 @@ html {
 
 </main>
 
-<!-- フローティングナビゲーション（モバイル用） -->
-<nav class="floating-nav" id="floating-nav" style="display: none;">
-    <div class="floating-nav-container">
-        <button class="nav-item" data-target="#search-section">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/>
-            </svg>
-            <span>検索</span>
-        </button>
-        <button class="nav-item" data-target="#categories-section">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-            </svg>
-            <span>カテゴリ</span>
-        </button>
-        <button class="nav-item" id="back-to-top">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-            </svg>
-            <span>TOP</span>
-        </button>
-    </div>
-</nav>
+
 
 <!-- プログレスバー -->
 <div class="scroll-progress" id="scroll-progress"></div>
 
 <style>
-/* フローティングナビゲーション */
-.floating-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid #e5e7eb;
-    z-index: 1000;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-}
-
-.floating-nav.visible {
-    transform: translateY(0);
-}
-
-.floating-nav-container {
-    display: flex;
-    justify-content: space-around;
-    padding: 8px 0;
-    max-width: 480px;
-    margin: 0 auto;
-}
-
-.nav-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 8px;
-    background: none;
-    border: none;
-    color: #6b7280;
-    font-size: 11px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.nav-item:active {
-    transform: scale(0.95);
-}
-
-.nav-item svg {
-    width: 24px;
-    height: 24px;
-}
-
-.nav-item:hover,
-.nav-item.active {
-    color: #10b981;
-}
-
 /* スクロールプログレスバー */
 .scroll-progress {
     position: fixed;
@@ -178,19 +100,6 @@ html {
     z-index: 9999;
     transition: width 0.1s ease;
     width: 0%;
-}
-
-/* レスポンシブ */
-@media (min-width: 769px) {
-    .floating-nav {
-        display: none !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .floating-nav {
-        display: block !important;
-    }
 }
 </style>
 
@@ -231,62 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // フローティングナビゲーション（モバイル）
-    const floatingNav = document.getElementById('floating-nav');
-    let lastScrollY = 0;
-    
-    function handleFloatingNav() {
-        const currentScrollY = window.scrollY;
-        
-        if (window.innerWidth <= 768 && floatingNav) {
-            if (currentScrollY > 300) {
-                // スクロール方向判定
-                if (currentScrollY < lastScrollY) {
-                    // 上スクロール時に表示
-                    floatingNav.classList.add('visible');
-                } else {
-                    // 下スクロール時に非表示
-                    floatingNav.classList.remove('visible');
-                }
-            } else {
-                floatingNav.classList.remove('visible');
-            }
-        }
-        
-        lastScrollY = currentScrollY;
-    }
-    
-    // ナビゲーションボタンのクリック処理
-    document.querySelectorAll('.nav-item[data-target]').forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.dataset.target;
-            const targetElement = document.querySelector(targetId);
-            
-            if (targetElement) {
-                targetElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-                
-                // アクティブ状態の更新
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                this.classList.add('active');
-            }
-        });
-    });
-    
-    // トップへ戻るボタン
-    const backToTopBtn = document.getElementById('back-to-top');
-    if (backToTopBtn) {
-        backToTopBtn.addEventListener('click', function() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        });
-    }
+
     
     // スクロールイベント（最適化）
     let scrollTimer;
@@ -295,7 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
         clearTimeout(scrollTimer);
         scrollTimer = setTimeout(() => {
             updateProgressBar();
-            handleFloatingNav();
         }, 10);
     });
     
@@ -337,10 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
-            // モバイルナビゲーションの表示/非表示
-            if (window.innerWidth > 768 && floatingNav) {
-                floatingNav.classList.remove('visible');
-            }
+            // 必要に応じてリサイズ処理を追加
         }, 250);
     });
     

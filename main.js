@@ -383,7 +383,6 @@ const GrantInsight = {
         this.setupMobileHeader();
         this.setupTouchOptimizations();
         this.setupCardInteractions();
-        this.setupBottomNavigation();
     },
 
     /**
@@ -491,55 +490,7 @@ const GrantInsight = {
         });
     },
 
-    /**
-     * ボトムナビゲーションの設定
-     */
-    setupBottomNavigation() {
-        let bottomNav = document.querySelector('.gi-bottom-nav');
-        if (!bottomNav) {
-            bottomNav = this.createBottomNavigation();
-        }
 
-        // アクティブ状態の管理
-        const currentPath = window.location.pathname;
-        const navItems = bottomNav.querySelectorAll('.gi-bottom-nav-item');
-        
-        navItems.forEach(item => {
-            const href = item.getAttribute('href');
-            if (href && currentPath.startsWith(href)) {
-                item.classList.add('active');
-            }
-        });
-    },
-
-    /**
-     * ボトムナビゲーションの作成
-     */
-    createBottomNavigation() {
-        const bottomNav = document.createElement('nav');
-        bottomNav.className = 'gi-bottom-nav';
-        bottomNav.innerHTML = `
-            <a href="/" class="gi-bottom-nav-item">
-                <div class="gi-bottom-nav-icon">🏠</div>
-                <div class="gi-bottom-nav-label">ホーム</div>
-            </a>
-            <a href="/grants/" class="gi-bottom-nav-item">
-                <div class="gi-bottom-nav-icon">🔍</div>
-                <div class="gi-bottom-nav-label">検索</div>
-            </a>
-            <a href="/favorites/" class="gi-bottom-nav-item">
-                <div class="gi-bottom-nav-icon">❤️</div>
-                <div class="gi-bottom-nav-label">お気に入り</div>
-            </a>
-            <a href="/my-page/" class="gi-bottom-nav-item">
-                <div class="gi-bottom-nav-icon">👤</div>
-                <div class="gi-bottom-nav-label">マイページ</div>
-            </a>
-        `;
-        
-        document.body.appendChild(bottomNav);
-        return bottomNav;
-    },
 
     /**
      * プルトゥリフレッシュの設定

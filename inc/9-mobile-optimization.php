@@ -159,10 +159,6 @@ function gi_enhanced_mobile_optimizations() {
                     .gi-mobile-header {
                         padding-top: max(8px, env(safe-area-inset-top));
                     }
-                    
-                    .gi-bottom-nav {
-                        padding-bottom: max(8px, env(safe-area-inset-bottom));
-                    }
                 }
             </style>';
         }

@@ -2643,7 +2643,15 @@ function gi_get_grant_title_suggestions($query, $limit = 5) {
         
         $suggestions = [];
         foreach ($results as $result) {
-            $suggestions[] = $result->post_title;
+            $amount = gi_safe_get_meta($result->ID, 'max_amount', '');
+            $deadline = gi_safe_get_meta($result->ID, 'deadline', '');
+            
+            $suggestions[] = [
+                'title' => $result->post_title ?: '',
+                'url' => get_permalink($result->ID) ?: '',
+                'amount' => $amount ?: '',
+                'deadline' => $deadline ? gi_get_formatted_deadline($deadline) : ''
+            ];
         }
         
         // キャッシュ（30分）
@@ -2677,7 +2685,11 @@ function gi_get_category_suggestions($query, $limit = 5) {
         $suggestions = [];
         if (!is_wp_error($terms)) {
             foreach ($terms as $term) {
-                $suggestions[] = $term->name;
+                $suggestions[] = [
+                    'name' => $term->name ?: '',
+                    'count' => $term->count ?: 0,
+                    'url' => get_term_link($term) ?: ''
+                ];
             }
         }
         
