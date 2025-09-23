@@ -578,6 +578,31 @@ $all_prefectures = get_terms([
         border-bottom: 1px solid var(--gray-200);
     }
     
+    /* Scrollable Filter Groups for Many Items */
+    .clean-filter-group .clean-filter-options-container {
+        max-height: 250px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--gray-300) transparent;
+    }
+    
+    .clean-filter-group .clean-filter-options-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .clean-filter-group .clean-filter-options-container::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .clean-filter-group .clean-filter-options-container::-webkit-scrollbar-thumb {
+        background-color: var(--gray-300);
+        border-radius: 3px;
+    }
+    
+    .clean-filter-group .clean-filter-options-container::-webkit-scrollbar-thumb:hover {
+        background-color: var(--gray-400);
+    }
+    
     .clean-filter-group:last-child {
         margin-bottom: 0;
         padding-bottom: 0;
@@ -1137,52 +1162,56 @@ $all_prefectures = get_terms([
                         <!-- Special Filters -->
                         <div class="clean-filter-group">
                             <h4 class="clean-filter-group-title">特別条件</h4>
-                            <label class="clean-filter-option">
-                                <input type="checkbox" 
-                                       name="is_featured" 
-                                       value="1" 
-                                       class="clean-filter-checkbox featured-checkbox"
-                                       <?php checked($search_params['is_featured'], '1'); ?>>
-                                <span class="clean-filter-label">おすすめの助成金のみ</span>
-                            </label>
+                            <div class="clean-filter-options-container">
+                                <label class="clean-filter-option">
+                                    <input type="checkbox" 
+                                           name="is_featured" 
+                                           value="1" 
+                                           class="clean-filter-checkbox featured-checkbox"
+                                           <?php checked($search_params['is_featured'], '1'); ?>>
+                                    <span class="clean-filter-label">おすすめの助成金のみ</span>
+                                </label>
+                            </div>
                         </div>
                         
                         <!-- Prefecture Filters -->
                         <?php if (!empty($all_prefectures) && !is_wp_error($all_prefectures)): ?>
                         <div class="clean-filter-group">
                             <h4 class="clean-filter-group-title">対象地域</h4>
-                            <?php 
-                            $prefecture_limit = 10;
-                            $selected_prefectures = explode(',', $search_params['prefecture']);
-                            $prefecture_count = count($all_prefectures);
-                            
-                            $has_selected = !empty(array_filter($selected_prefectures));
-                            $show_all_initially = $has_selected;
-                            
-                            foreach ($all_prefectures as $index => $prefecture): 
-                                $is_selected = in_array($prefecture->slug, $selected_prefectures);
-                                $is_hidden = !$show_all_initially && $index >= $prefecture_limit;
-                            ?>
-                            <label class="clean-filter-option <?php echo $is_hidden ? 'clean-filter-more-item hidden' : ''; ?>">
-                                <input type="checkbox" 
-                                       name="prefectures[]" 
-                                       value="<?php echo esc_attr($prefecture->slug); ?>" 
-                                       class="clean-filter-checkbox prefecture-checkbox"
-                                       <?php checked($is_selected); ?>>
-                                <span class="clean-filter-label"><?php echo esc_html($prefecture->name); ?></span>
-                                <?php if ($prefecture->count > 0): ?>
-                                <span class="clean-filter-count"><?php echo esc_html($prefecture->count); ?></span>
+                            <div class="clean-filter-options-container">
+                                <?php 
+                                $prefecture_limit = 10;
+                                $selected_prefectures = explode(',', $search_params['prefecture']);
+                                $prefecture_count = count($all_prefectures);
+                                
+                                $has_selected = !empty(array_filter($selected_prefectures));
+                                $show_all_initially = $has_selected;
+                                
+                                foreach ($all_prefectures as $index => $prefecture): 
+                                    $is_selected = in_array($prefecture->slug, $selected_prefectures);
+                                    $is_hidden = !$show_all_initially && $index >= $prefecture_limit;
+                                ?>
+                                <label class="clean-filter-option <?php echo $is_hidden ? 'clean-filter-more-item hidden' : ''; ?>">
+                                    <input type="checkbox" 
+                                           name="prefectures[]" 
+                                           value="<?php echo esc_attr($prefecture->slug); ?>" 
+                                           class="clean-filter-checkbox prefecture-checkbox"
+                                           <?php checked($is_selected); ?>>
+                                    <span class="clean-filter-label"><?php echo esc_html($prefecture->name); ?></span>
+                                    <?php if ($prefecture->count > 0): ?>
+                                    <span class="clean-filter-count"><?php echo esc_html($prefecture->count); ?></span>
+                                    <?php endif; ?>
+                                </label>
+                                <?php endforeach; ?>
+                                <?php if ($prefecture_count > $prefecture_limit): ?>
+                                <button type="button" class="clean-filter-more-btn" data-target="prefecture">
+                                    <span class="show-more-text <?php echo $show_all_initially ? 'hidden' : ''; ?>">さらに表示 (+<?php echo $prefecture_count - $prefecture_limit; ?>)</span>
+                                    <span class="show-less-text <?php echo !$show_all_initially ? 'hidden' : ''; ?>">表示を減らす</span>
+                                    <i class="fas fa-chevron-down show-more-icon <?php echo $show_all_initially ? 'hidden' : ''; ?>"></i>
+                                    <i class="fas fa-chevron-up show-less-icon <?php echo !$show_all_initially ? 'hidden' : ''; ?>"></i>
+                                </button>
                                 <?php endif; ?>
-                            </label>
-                            <?php endforeach; ?>
-                            <?php if ($prefecture_count > $prefecture_limit): ?>
-                            <button type="button" class="clean-filter-more-btn" data-target="prefecture">
-                                <span class="show-more-text <?php echo $show_all_initially ? 'hidden' : ''; ?>">さらに表示 (+<?php echo $prefecture_count - $prefecture_limit; ?>)</span>
-                                <span class="show-less-text <?php echo !$show_all_initially ? 'hidden' : ''; ?>">表示を減らす</span>
-                                <i class="fas fa-chevron-down show-more-icon <?php echo $show_all_initially ? 'hidden' : ''; ?>"></i>
-                                <i class="fas fa-chevron-up show-less-icon <?php echo !$show_all_initially ? 'hidden' : ''; ?>"></i>
-                            </button>
-                            <?php endif; ?>
+                            </div>
                         </div>
                         <?php endif; ?>
 
@@ -1190,64 +1219,68 @@ $all_prefectures = get_terms([
                         <?php if (!empty($all_categories) && !is_wp_error($all_categories)): ?>
                         <div class="clean-filter-group">
                             <h4 class="clean-filter-group-title">カテゴリ</h4>
-                            <?php 
-                            $category_limit = 8;
-                            $selected_categories = explode(',', $search_params['category']);
-                            $category_count = count($all_categories);
-                            
-                            $has_selected_cat = !empty(array_filter($selected_categories));
-                            $show_all_cat_initially = $has_selected_cat;
-                            
-                            foreach ($all_categories as $index => $category): 
-                                $is_selected_cat = in_array($category->slug, $selected_categories);
-                                $is_hidden = !$show_all_cat_initially && $index >= $category_limit;
-                            ?>
-                            <label class="clean-filter-option <?php echo $is_hidden ? 'clean-filter-more-item hidden' : ''; ?>">
-                                <input type="checkbox" 
-                                       name="categories[]" 
-                                       value="<?php echo esc_attr($category->slug); ?>" 
-                                       class="clean-filter-checkbox category-checkbox"
-                                       <?php checked($is_selected_cat); ?>>
-                                <span class="clean-filter-label"><?php echo esc_html($category->name); ?></span>
-                                <?php if ($category->count > 0): ?>
-                                <span class="clean-filter-count"><?php echo esc_html($category->count); ?></span>
+                            <div class="clean-filter-options-container">
+                                <?php 
+                                $category_limit = 8;
+                                $selected_categories = explode(',', $search_params['category']);
+                                $category_count = count($all_categories);
+                                
+                                $has_selected_cat = !empty(array_filter($selected_categories));
+                                $show_all_cat_initially = $has_selected_cat;
+                                
+                                foreach ($all_categories as $index => $category): 
+                                    $is_selected_cat = in_array($category->slug, $selected_categories);
+                                    $is_hidden = !$show_all_cat_initially && $index >= $category_limit;
+                                ?>
+                                <label class="clean-filter-option <?php echo $is_hidden ? 'clean-filter-more-item hidden' : ''; ?>">
+                                    <input type="checkbox" 
+                                           name="categories[]" 
+                                           value="<?php echo esc_attr($category->slug); ?>" 
+                                           class="clean-filter-checkbox category-checkbox"
+                                           <?php checked($is_selected_cat); ?>>
+                                    <span class="clean-filter-label"><?php echo esc_html($category->name); ?></span>
+                                    <?php if ($category->count > 0): ?>
+                                    <span class="clean-filter-count"><?php echo esc_html($category->count); ?></span>
+                                    <?php endif; ?>
+                                </label>
+                                <?php endforeach; ?>
+                                <?php if ($category_count > $category_limit): ?>
+                                <button type="button" class="clean-filter-more-btn" data-target="category">
+                                    <span class="show-more-text <?php echo $show_all_cat_initially ? 'hidden' : ''; ?>">さらに表示 (+<?php echo $category_count - $category_limit; ?>)</span>
+                                    <span class="show-less-text <?php echo !$show_all_cat_initially ? 'hidden' : ''; ?>">表示を減らす</span>
+                                    <i class="fas fa-chevron-down show-more-icon <?php echo $show_all_cat_initially ? 'hidden' : ''; ?>"></i>
+                                    <i class="fas fa-chevron-up show-less-icon <?php echo !$show_all_cat_initially ? 'hidden' : ''; ?>"></i>
+                                </button>
                                 <?php endif; ?>
-                            </label>
-                            <?php endforeach; ?>
-                            <?php if ($category_count > $category_limit): ?>
-                            <button type="button" class="clean-filter-more-btn" data-target="category">
-                                <span class="show-more-text <?php echo $show_all_cat_initially ? 'hidden' : ''; ?>">さらに表示 (+<?php echo $category_count - $category_limit; ?>)</span>
-                                <span class="show-less-text <?php echo !$show_all_cat_initially ? 'hidden' : ''; ?>">表示を減らす</span>
-                                <i class="fas fa-chevron-down show-more-icon <?php echo $show_all_cat_initially ? 'hidden' : ''; ?>"></i>
-                                <i class="fas fa-chevron-up show-less-icon <?php echo !$show_all_cat_initially ? 'hidden' : ''; ?>"></i>
-                            </button>
-                            <?php endif; ?>
+                            </div>
                         </div>
                         <?php endif; ?>
 
                         <!-- Amount Filters -->
                         <div class="clean-filter-group">
                             <h4 class="clean-filter-group-title">助成金額</h4>
-                            <?php
-                            $amount_ranges = [
-                                '' => 'すべて',
-                                '0-100' => '〜100万円',
-                                '100-500' => '100〜500万円',
-                                '500-1000' => '500〜1000万円',
-                                '1000-3000' => '1000〜3000万円',
-                                '3000+' => '3000万円以上'
-                            ];
-                            foreach ($amount_ranges as $value => $label):
-                            ?>
-                            <label class="clean-filter-option">
-                                <input type="radio" 
-                                       name="amount" 
-                                       value="<?php echo esc_attr($value); ?>" 
-                                       class="clean-filter-radio amount-radio"
-                                       <?php checked($search_params['amount'], $value); ?>>
-                                <span class="clean-filter-label"><?php echo esc_html($label); ?></span>
-                            </label>
-                            <?php endforeach; ?>
+                            <div class="clean-filter-options-container">
+                                <?php
+                                $amount_ranges = [
+                                    '' => 'すべて',
+                                    '0-100' => '〜100万円',
+                                    '100-500' => '100〜500万円',
+                                    '500-1000' => '500〜1000万円',
+                                    '1000-3000' => '1000〜3000万円',
+                                    '3000+' => '3000万円以上'
+                                ];
+                                foreach ($amount_ranges as $value => $label):
+                                ?>
+                                <label class="clean-filter-option">
+                                    <input type="radio" 
+                                           name="amount" 
+                                           value="<?php echo esc_attr($value); ?>" 
+                                           class="clean-filter-radio amount-radio"
+                                           <?php checked($search_params['amount'], $value); ?>>
+                                    <span class="clean-filter-label"><?php echo esc_html($label); ?></span>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
                 </div>

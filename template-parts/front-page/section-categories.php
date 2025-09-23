@@ -322,9 +322,36 @@ if (function_exists('gi_get_cached_stats')) {
                         }
                         
                         foreach ($all_prefectures as $pref) :
-                            // 実際の投稿数を取得
+                            // 実際の投稿数を取得（複数の方法で確認）
                             $term = get_term_by('slug', $pref['slug'], 'grant_prefecture');
-                            $count = $term ? $term->count : 0;
+                            $count = 0;
+                            
+                            if ($term) {
+                                $count = $term->count;
+                            } else {
+                                // slugで見つからない場合は名前で検索
+                                $term_by_name = get_term_by('name', $pref['name'], 'grant_prefecture');
+                                if ($term_by_name) {
+                                    $count = $term_by_name->count;
+                                } else {
+                                    // 直接投稿をクエリして件数を取得
+                                    $posts_query = new WP_Query([
+                                        'post_type' => 'grant',
+                                        'post_status' => 'publish',
+                                        'posts_per_page' => -1,
+                                        'fields' => 'ids',
+                                        'tax_query' => [
+                                            [
+                                                'taxonomy' => 'grant_prefecture',
+                                                'field' => 'name',
+                                                'terms' => $pref['name']
+                                            ]
+                                        ]
+                                    ]);
+                                    $count = $posts_query->found_posts;
+                                    wp_reset_postdata();
+                                }
+                            }
                             
                             // フィルター付きURLを生成（パラメータ名を修正）
                             $prefecture_url = add_query_arg(
@@ -1445,7 +1472,8 @@ a.recent-grant-item:hover {
     }
     
     .main-categories-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
     }
     
     .card-content {

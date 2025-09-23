@@ -1494,9 +1494,9 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             }
 
             container.innerHTML = suggestions.map(s => `
-                <div class="suggestion-item" data-text="${s.text}">
-                    <span class="suggestion-icon">${s.icon}</span>
-                    <span>${s.text}</span>
+                <div class="suggestion-item" data-text="${s.text || s.title || ''}">
+                    <span class="suggestion-icon">${s.icon || '🔍'}</span>
+                    <span>${s.text || s.title || 'データなし'}</span>
                 </div>
             `).join('');
 
