@@ -2588,6 +2588,285 @@ $nonce = wp_create_nonce('gi_ai_search_nonce');
             return indicator;
         }
 
+        // Enhanced Grant Assistant Methods
+        bindGrantCardEvents() {
+            // Bind AI assistant buttons
+            document.querySelectorAll('.ai-assist-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const grantId = btn.dataset.grantId;
+                    const grantTitle = btn.dataset.grantTitle;
+                    this.showGrantAssistant(grantId, grantTitle);
+                });
+            });
+        }
+
+        showGrantAssistant(grantId, grantTitle) {
+            // Create modal if it doesn't exist
+            let modal = document.querySelector('.grant-assistant-modal');
+            if (!modal) {
+                modal = this.createGrantAssistantModal();
+                document.body.appendChild(modal);
+            }
+
+            // Update modal content
+            const titleElement = modal.querySelector('.grant-title');
+            if (titleElement) {
+                titleElement.textContent = grantTitle;
+                titleElement.dataset.grantId = grantId;
+            }
+
+            // Clear previous chat and set up initial suggestions
+            const chatContainer = modal.querySelector('.assistant-chat');
+            const suggestionsContainer = modal.querySelector('.suggestion-buttons');
+            
+            if (chatContainer) {
+                chatContainer.innerHTML = `
+                    <div class="initial-message">
+                        <div class="message-bubble">
+                            「${grantTitle}」について何でもお聞きください！<br>
+                            以下のような質問にお答えできます：
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Set up contextual suggestions
+            if (suggestionsContainer) {
+                suggestionsContainer.innerHTML = this.getContextualSuggestions(grantId).map(suggestion => `
+                    <button class="suggestion-btn" data-grant-id="${grantId}" data-type="${suggestion.type}">
+                        ${suggestion.text}
+                    </button>
+                `).join('');
+
+                // Bind suggestion events
+                suggestionsContainer.querySelectorAll('.suggestion-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const questionText = btn.textContent;
+                        const questionType = btn.dataset.type;
+                        this.sendGrantQuestion(grantId, questionText, questionType);
+                    });
+                });
+            }
+
+            // Setup chat input
+            this.setupGrantChatInput(modal, grantId);
+
+            // Show modal
+            modal.classList.add('active');
+        }
+
+        createGrantAssistantModal() {
+            const modal = document.createElement('div');
+            modal.className = 'grant-assistant-modal';
+            modal.innerHTML = `
+                <div class="modal-overlay"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="assistant-info">
+                            <div class="assistant-avatar">
+                                <div class="avatar-ring"></div>
+                                <span class="avatar-icon">AI</span>
+                            </div>
+                            <div class="assistant-details">
+                                <h3>補助金AIアシスタント</h3>
+                                <p class="grant-title"></p>
+                            </div>
+                        </div>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="assistant-chat"></div>
+                        <div class="suggestion-buttons"></div>
+                        <div class="chat-input-area">
+                            <textarea class="grant-chat-input" placeholder="質問を入力してください..." rows="1"></textarea>
+                            <button class="send-btn">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <path d="M2 9l14-7-5 7 5 7z" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Close button event
+            const closeBtn = modal.querySelector('.modal-close');
+            const overlay = modal.querySelector('.modal-overlay');
+            
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+            
+            overlay.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+
+            // Escape key to close
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modal.classList.contains('active')) {
+                    modal.classList.remove('active');
+                }
+            });
+
+            return modal;
+        }
+
+        getContextualSuggestions(grantId) {
+            // Enhanced contextual suggestions based on grant selection
+            return [
+                { text: '申請手順を教えて', type: 'process' },
+                { text: '必要書類は何ですか？', type: 'requirements' },
+                { text: '締切はいつですか？', type: 'deadline' },
+                { text: '採択のコツを教えて', type: 'tips' },
+                { text: '対象要件を詳しく', type: 'requirements' },
+                { text: 'この補助金の概要', type: 'overview' },
+                { text: '申請書の書き方', type: 'application' },
+                { text: '審査基準について', type: 'criteria' }
+            ];
+        }
+
+        setupGrantChatInput(modal, grantId) {
+            const chatInput = modal.querySelector('.grant-chat-input');
+            const sendBtn = modal.querySelector('.send-btn');
+
+            if (!chatInput || !sendBtn) return;
+
+            // Auto-resize textarea
+            chatInput.addEventListener('input', () => {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+            });
+
+            // Send button event
+            sendBtn.addEventListener('click', () => {
+                const question = chatInput.value.trim();
+                if (question) {
+                    this.sendGrantQuestion(grantId, question, 'custom');
+                    chatInput.value = '';
+                    chatInput.style.height = 'auto';
+                }
+            });
+
+            // Enter key to send (Shift+Enter for new line)
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const question = chatInput.value.trim();
+                    if (question) {
+                        this.sendGrantQuestion(grantId, question, 'custom');
+                        chatInput.value = '';
+                        chatInput.style.height = 'auto';
+                    }
+                }
+            });
+        }
+
+        async sendGrantQuestion(grantId, question, questionType) {
+            const modal = document.querySelector('.grant-assistant-modal');
+            if (!modal) return;
+
+            const chatContainer = modal.querySelector('.assistant-chat');
+            const suggestionsContainer = modal.querySelector('.suggestion-buttons');
+
+            if (!chatContainer) return;
+
+            // Add user question
+            this.addAssistantMessage(chatContainer, question, 'user');
+
+            // Show typing indicator
+            const typingIndicator = this.addTypingIndicator(chatContainer);
+            
+            try {
+                const formData = new FormData();
+                formData.append('action', 'gi_grant_assistant');
+                formData.append('nonce', CONFIG.NONCE);
+                formData.append('grant_id', grantId);
+                formData.append('question_type', questionType);
+                if (questionType === 'custom') {
+                    formData.append('custom_question', question);
+                }
+                formData.append('session_id', CONFIG.SESSION_ID);
+
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+                
+                // Remove typing indicator
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+
+                if (data.success) {
+                    // Add AI response
+                    this.addAssistantMessage(chatContainer, data.data.response, 'ai');
+                    
+                    // Update suggestions
+                    if (data.data.suggestions && suggestionsContainer) {
+                        suggestionsContainer.innerHTML = data.data.suggestions.map(suggestion => `
+                            <button class="suggestion-btn small" data-grant-id="${grantId}" data-type="custom">
+                                ${suggestion}
+                            </button>
+                        `).join('');
+                        
+                        // Re-bind suggestion events
+                        suggestionsContainer.querySelectorAll('.suggestion-btn').forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                const questionText = btn.textContent;
+                                this.sendGrantQuestion(grantId, questionText, 'custom');
+                            });
+                        });
+                    }
+                } else {
+                    this.addAssistantMessage(chatContainer, '申し訳ございません。エラーが発生しました。', 'ai');
+                }
+                
+            } catch (error) {
+                console.error('Grant assistant error:', error);
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+                this.addAssistantMessage(chatContainer, '通信エラーが発生しました。', 'ai');
+            }
+        }
+
+        addAssistantMessage(container, text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `assistant-message ${type}`;
+            messageDiv.innerHTML = `
+                <div class="message-bubble ${type}">
+                    ${text.replace(/\n/g, '<br>')}
+                </div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        addTypingIndicator(container) {
+            const indicator = document.createElement('div');
+            indicator.className = 'assistant-message ai typing';
+            indicator.innerHTML = `
+                <div class="message-bubble ai">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(indicator);
+            container.scrollTop = container.scrollHeight;
+            
+            return indicator;
+        }
+
         // Utility Methods
         debounce(func, wait) {
             let timeout;
