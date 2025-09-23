@@ -1484,5 +1484,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Main Content Area -->
 <main id="main-content" class="gi-main-content">
-    <!-- Content will be injected here -->
-</main>
+    <!-- Content will be injected here by template files -->
