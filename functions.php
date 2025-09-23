@@ -34,7 +34,8 @@ $required_files = array(
     'ai-functions.php',      // AI機能・検索履歴統合
     '3-ajax-functions.php',  // AJAX処理（既存のまま）
     '6-admin-functions.php', // 管理画面機能（既存のまま）
-    'acf-setup.php'          // ACF設定とフィールド定義統合
+    'acf-setup.php',         // ACF設定とフィールド定義統合
+    'grant-insight-jgrants-importer.php'  // Jグランツ・インポーター機能
 );
 
 // 各ファイルを安全に読み込み
