@@ -2361,66 +2361,7 @@ function gi_calculate_relevance_score($post_id, $keywords, $original_query = '')
  * =============================================================================
  */
 
-/**
- * AI検索応答生成（完全実装版）
- */
-function gi_generate_ai_search_response($query, $grants) {
-    if (empty($grants)) {
-        return "申し訳ございませんが、「{$query}」に該当する助成金が見つかりませんでした。検索条件を変更してお試しください。";
-    }
-    
-    $count = count($grants);
-    $categories = [];
-    $amounts = [];
-    $organizations = [];
-    $featured_count = 0;
-    
-    // 結果分析
-    foreach ($grants as $grant) {
-        if (!empty($grant['categories'])) {
-            $categories = array_merge($categories, $grant['categories']);
-        }
-        if (!empty($grant['amount'])) {
-            $amounts[] = $grant['amount'];
-        }
-        if (!empty($grant['organization'])) {
-            $organizations[] = $grant['organization'];
-        }
-        if (!empty($grant['featured'])) {
-            $featured_count++;
-        }
-    }
-    
-    $unique_categories = array_unique($categories);
-    $unique_orgs = array_unique($organizations);
-    
-    // 応答テンプレート生成
-    $responses = [
-        "「{$query}」で{$count}件の助成金が見つかりました。",
-        "検索結果として{$count}件の助成金をご提案いたします。"
-    ];
-    
-    $response = $responses[array_rand($responses)];
-    
-    // 追加情報
-    if ($featured_count > 0) {
-        $response .= "このうち{$featured_count}件は特におすすめの助成金です。";
-    }
-    
-    if (!empty($unique_categories)) {
-        $cats = array_slice($unique_categories, 0, 3);
-        $response .= "主なカテゴリーは" . implode('、', $cats) . "などです。";
-    }
-    
-    if (!empty($unique_orgs)) {
-        $orgs = array_slice($unique_orgs, 0, 2);
-        $response .= "実施組織は" . implode('、', $orgs) . "などがあります。";
-    }
-    
-    $response .= "詳細については各助成金のページをご確認ください。";
-    
-    return $response;
-}
+// gi_generate_ai_search_response関数は2918行目に改良版が定義されているため、この古いバージョンは削除
 
 /**
  * ユーザー意図分析（完全実装版）
@@ -2619,53 +2560,10 @@ function gi_get_popular_searches($limit = 10) {
     return $popular ?: [];
 }
 
-/**
- * 助成金タイトル候補取得（完全実装版）
- */
-function gi_get_grant_title_suggestions($query, $limit = 5) {
-    global $wpdb;
-    
-    if (strlen($query) < 2) {
-        return [];
-    }
-    
-    $cache_key = 'gi_title_suggestions_' . md5($query) . '_' . $limit;
-    $suggestions = wp_cache_get($cache_key);
-    
-    if (false === $suggestions) {
-        $like_query = '%' . $wpdb->esc_like($query) . '%';
-        
-        $results = $wpdb->get_results($wpdb->prepare("
-            SELECT post_title, ID 
-            FROM {$wpdb->posts} 
-            WHERE post_type = 'grant' 
-            AND post_status = 'publish' 
-            AND post_title LIKE %s 
-            ORDER BY post_date DESC 
-            LIMIT %d
-        ", $like_query, $limit));
-        
-        $suggestions = [];
-        foreach ($results as $result) {
-            $suggestions[] = $result->post_title;
-        }
-        
-        // キャッシュ（30分）
-        wp_cache_set($cache_key, $suggestions, '', 1800);
-    }
-    
-    return $suggestions;
-}
+// gi_get_grant_title_suggestions関数は3584行目により完全な実装があるため、この古いバージョンは削除
 
-/**
- * カテゴリー候補取得（完全実装版）
- */
-function gi_get_category_suggestions($query, $limit = 5) {
-    if (strlen($query) < 2) {
-        return [];
-    }
-    
-    $cache_key = 'gi_category_suggestions_' . md5($query) . '_' . $limit;
+// gi_get_category_suggestions関数は3634行目により完全な実装があるため、この古いバージョンは削除
+// 以下の関数定義も削除された部分（カテゴリー候補取得の古い実装）
     $suggestions = wp_cache_get($cache_key);
     
     if (false === $suggestions) {
@@ -3079,33 +2977,7 @@ function gi_suggest_alternatives($query) {
     return array_unique($alternatives);
 }
 
-/**
- * ユーザー意図分析
- */
-function gi_analyze_user_intent($message) {
-    $intent = ['type' => 'general', 'confidence' => 0.5, 'entities' => []];
-    
-    // 意図パターンのマッチング
-    $patterns = [
-        'grant_search' => ['補助金', '助成金', '支援金', '探して', '教えて'],
-        'application_help' => ['申請', '応募', '手続き', '書類', 'やり方'],
-        'deadline_check' => ['締切', '期限', 'いつまで', '期間'],
-        'amount_inquiry' => ['金額', 'いくら', '最大', '上限'],
-        'eligibility' => ['対象', '条件', '資格', '該当']
-    ];
-    
-    foreach ($patterns as $type => $keywords) {
-        foreach ($keywords as $keyword) {
-            if (mb_stripos($message, $keyword) !== false) {
-                $intent['type'] = $type;
-                $intent['confidence'] = 0.8;
-                $intent['entities'][] = $keyword;
-            }
-        }
-    }
-    
-    return $intent;
-}
+// gi_analyze_user_intent関数は2369行目により完全な実装があるため、この単純なバージョンは削除
 
 /**
  * チャット応答生成（改良版）
@@ -3376,62 +3248,12 @@ function gi_generate_openai_response($message, $intent, $context) {
     return gi_generate_enhanced_local_response($message, $intent, $context);
 }
 
-/**
- * 関連補助金検索
- */
-function gi_find_related_grants($message, $intent) {
-    $args = [
-        'post_type' => 'grant',
-        'posts_per_page' => 3,
-        'post_status' => 'publish',
-        'orderby' => 'meta_value_num',
-        'meta_key' => 'grant_success_rate',
-        'order' => 'DESC'
-    ];
-    
-    $query = new WP_Query($args);
-    $grants = [];
-    
-    if ($query->have_posts()) {
-        while ($query->have_posts()) {
-            $query->the_post();
-            $grants[] = [
-                'id' => get_the_ID(),
-                'title' => get_the_title(),
-                'permalink' => get_permalink(),
-                'amount' => get_post_meta(get_the_ID(), 'max_amount', true)
-            ];
-        }
-        wp_reset_postdata();
-    }
-    
-    return $grants;
-}
+// gi_find_related_grants関数は2435行目により完全な実装があるため、この単純なバージョンは削除
 
 /**
  * フォローアップ質問生成
  */
-function gi_generate_follow_up_questions($intent, $message) {
-    $questions = [
-        'grant_search' => [
-            '業種を教えてください',
-            '従業員数は何名ですか？',
-            '希望する支援額はいくらですか？'
-        ],
-        'application_help' => [
-            '申請書類の準備はお済みですか？',
-            '過去に補助金申請の経験はありますか？',
-            '申請期限はいつまでですか？'
-        ],
-        'general' => [
-            '具体的にどのような支援をお探しですか？',
-            '御社の事業内容を教えてください',
-            '補助金の使途は決まっていますか？'
-        ]
-    ];
-    
-    return $questions[$intent['type']] ?? $questions['general'];
-}
+// gi_generate_follow_up_questions関数は2765行目により完全な実装があるため、この単純なバージョンは削除
 
 /**
  * チャット履歴のデータベース記録
@@ -3537,36 +3359,9 @@ function gi_get_popular_searches() {
     ];
 }
 
-/**
- * 補助金タイトル候補取得
- */
-function gi_get_grant_title_suggestions($query) {
-    global $wpdb;
-    
-    $results = $wpdb->get_col($wpdb->prepare(
-        "SELECT post_title FROM {$wpdb->posts} 
-        WHERE post_type = 'grant' 
-        AND post_status = 'publish' 
-        AND post_title LIKE %s 
-        LIMIT 5",
-        '%' . $wpdb->esc_like($query) . '%'
-    ));
-    
-    return $results ?: [];
-}
+// gi_get_grant_title_suggestions関数は3584行目により完全な実装があるため、この古いバージョンは削除
 
-/**
- * カテゴリー候補取得
- */
-function gi_get_category_suggestions($query) {
-    $categories = get_terms([
-        'taxonomy' => 'grant_category',
-        'hide_empty' => false,
-        'name__like' => $query
-    ]);
-    
-    return wp_list_pluck($categories, 'name');
-}
+// gi_get_category_suggestions関数は3634行目により完全な実装があるため、この古いバージョンは削除
 
 /**
  * 人気検索キーワード取得（完全実装版）
