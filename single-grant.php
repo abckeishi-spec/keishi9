@@ -18,11 +18,7 @@ if (!have_posts()) {
 the_post();
 $post_id = get_the_ID();
 
-// Enhanced meta data retrieval with fallbacks
-function gi_safe_get_meta($post_id, $key, $default = '') {
-    $value = get_post_meta($post_id, $key, true);
-    return !empty($value) ? $value : $default;
-}
+// gi_safe_get_meta function is defined in inc/data-functions.php
 
 // Core grant data
 $ai_summary = gi_safe_get_meta($post_id, 'ai_summary', '');
