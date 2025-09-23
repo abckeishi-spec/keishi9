@@ -572,6 +572,99 @@ function gi_get_grant_statistics() {
 // gi_get_popular_search_terms関数は inc/ai-functions.php に移動
 
 /**
+ * 統計情報取得（キャッシュ対応）- エイリアス関数
+ */
+function gi_get_cached_stats() {
+    return gi_get_grant_statistics();
+}
+
+/**
+ * 締切日の書式化された表示を取得
+ */
+function gi_get_formatted_deadline($post_id) {
+    $deadline = gi_safe_get_meta($post_id, 'deadline_date');
+    return gi_format_deadline_for_display($deadline);
+}
+
+/**
+ * 助成金金額の表示を取得
+ */
+function gi_get_grant_amount_display($post_id) {
+    $amount_numeric = gi_safe_get_meta($post_id, 'max_amount_numeric', 0);
+    $amount_text = gi_safe_get_meta($post_id, 'max_amount', '');
+    return gi_format_amount_unified($amount_numeric, $amount_text);
+}
+
+/**
+ * ACFフィールドを安全に取得
+ */
+function gi_get_acf_field_safely($field_name, $post_id = false, $default = '') {
+    if (function_exists('get_field')) {
+        $value = get_field($field_name, $post_id);
+        return !empty($value) ? $value : $default;
+    }
+    return gi_safe_get_meta($post_id ?: get_the_ID(), $field_name, $default);
+}
+
+/**
+ * テーマオプション取得
+ */
+function gi_get_theme_option($option_name, $default = '') {
+    if (function_exists('get_theme_mod')) {
+        return get_theme_mod($option_name, $default);
+    }
+    return get_option($option_name, $default);
+}
+
+/**
+ * 安全なエスケープ
+ */
+function gi_safe_escape($value, $type = 'text') {
+    if (empty($value)) return '';
+    
+    switch ($type) {
+        case 'html':
+            return wp_kses_post($value);
+        case 'url':
+            return esc_url($value);
+        case 'attr':
+            return esc_attr($value);
+        default:
+            return sanitize_text_field($value);
+    }
+}
+
+/**
+ * 投稿のカテゴリ取得
+ */
+function gi_get_post_categories($post_id) {
+    $categories = get_the_terms($post_id, 'grant_category');
+    if (is_wp_error($categories) || empty($categories)) {
+        return [];
+    }
+    return array_map(function($cat) {
+        return [
+            'name' => $cat->name,
+            'slug' => $cat->slug,
+            'id' => $cat->term_id
+        ];
+    }, $categories);
+}
+
+/**
+ * お気に入りトグル
+ */
+function gi_toggle_favorite($post_id) {
+    $favorites = gi_get_user_favorites();
+    
+    if (in_array($post_id, $favorites)) {
+        return gi_remove_from_favorites($post_id);
+    } else {
+        return gi_add_to_favorites($post_id);
+    }
+}
+
+/**
  * キャッシュクリア関数
  */
 function gi_clear_all_caches() {
